@@ -1,6 +1,10 @@
 import React from 'react';
 
 const TranscriptList = ({ transcript, selectedIds, toggleId, jumpTo }) => {
+  const formatTime = (time) => {
+    return Number.isFinite(time) ? Math.round(time) : 0;
+  };
+
   return (
     <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #ccc', padding: 10 }}>
       {transcript.map((line) => (
@@ -12,9 +16,9 @@ const TranscriptList = ({ transcript, selectedIds, toggleId, jumpTo }) => {
           />
           <span
             style={{ marginLeft: 8, color: '#0077cc', cursor: 'pointer' }}
-            onClick={() => jumpTo(line.start)}
+            onClick={() => jumpTo(formatTime(line.start))}
           >
-            [{line.start}s–{line.end}s] {line.text}
+            [{formatTime(line.start)}s–{formatTime(line.end)}s] {line.text}
           </span>
         </label>
       ))}

@@ -96,4 +96,9 @@ release/
 *.exe
 *.dmg
 *.AppImage
+*.wav
 
+# Whisper and FFmpeg binaries
+src/whisper/ffmpeg.exe
+src/whisper/whisper.exe
+src/whisper/ggml-base.en.bin

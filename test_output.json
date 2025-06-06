@@ -1,0 +1,175 @@
+{
+	"systeminfo": "WHISPER : COREML = 0 | OPENVINO = 0 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | OPENMP = 1 | AARCH64_REPACK = 1 | ",
+	"model": {
+		"type": "base",
+		"multilingual": false,
+		"vocab": 51864,
+		"audio": {
+			"ctx": 1500,
+			"state": 512,
+			"head": 8,
+			"layer": 6
+		},
+		"text": {
+			"ctx": 448,
+			"state": 512,
+			"head": 8,
+			"layer": 6
+		},
+		"mels": 80,
+		"ftype": 1
+	},
+	"params": {
+		"model": "ggml-base.en.bin",
+		"language": "en",
+		"translate": false
+	},
+	"result": {
+		"language": "en"
+	},
+	"transcription": [
+		{
+			"timestamps": {
+				"from": "00:00:00,000",
+				"to": "00:00:09,640"
+			},
+			"offsets": {
+				"from": 0,
+				"to": 9640
+			},
+			"text": " is to stop trying. Stop jumping, stop running, stop screaming, shouting for"
+		},
+		{
+			"timestamps": {
+				"from": "00:00:09,640",
+				"to": "00:00:19,200"
+			},
+			"offsets": {
+				"from": 9640,
+				"to": 19200
+			},
+			"text": " attention, for success, for fame, for money. Once you relax and stop achieving or"
+		},
+		{
+			"timestamps": {
+				"from": "00:00:19,200",
+				"to": "00:00:26,560"
+			},
+			"offsets": {
+				"from": 19200,
+				"to": 26560
+			},
+			"text": " trying to achieve, new things will start to flow. New things will emerge in your"
+		},
+		{
+			"timestamps": {
+				"from": "00:00:26,560",
+				"to": "00:00:33,840"
+			},
+			"offsets": {
+				"from": 26560,
+				"to": 33840
+			},
+			"text": " life and you will see new possibilities. And even then, don't be tempted to try"
+		},
+		{
+			"timestamps": {
+				"from": "00:00:33,840",
+				"to": "00:00:41,920"
+			},
+			"offsets": {
+				"from": 33840,
+				"to": 41920
+			},
+			"text": " any one of these. Let's do nothing. If you can do this for a long time, then you"
+		},
+		{
+			"timestamps": {
+				"from": "00:00:41,920",
+				"to": "00:00:50,080"
+			},
+			"offsets": {
+				"from": 41920,
+				"to": 50080
+			},
+			"text": " reach the essentials of your being. If you do this for enough time, the next"
+		},
+		{
+			"timestamps": {
+				"from": "00:00:50,080",
+				"to": "00:00:56,920"
+			},
+			"offsets": {
+				"from": 50080,
+				"to": 56920
+			},
+			"text": " thing you will do will come from your inner self, from your ascension, from your"
+		},
+		{
+			"timestamps": {
+				"from": "00:00:56,920",
+				"to": "00:01:11,880"
+			},
+			"offsets": {
+				"from": 56920,
+				"to": 71880
+			},
+			"text": " essence. Creation from essence, instead of creation, from outer stimuli, is most of"
+		},
+		{
+			"timestamps": {
+				"from": "00:01:11,880",
+				"to": "00:01:20,300"
+			},
+			"offsets": {
+				"from": 71880,
+				"to": 80300
+			},
+			"text": " the time a creation that has a higher quality level to it. No matter what the"
+		},
+		{
+			"timestamps": {
+				"from": "00:01:20,300",
+				"to": "00:01:24,920"
+			},
+			"offsets": {
+				"from": 80300,
+				"to": 84920
+			},
+			"text": " creation is, either you're starting a business or you're painting a piece of"
+		},
+		{
+			"timestamps": {
+				"from": "00:01:24,920",
+				"to": "00:01:34,200"
+			},
+			"offsets": {
+				"from": 84920,
+				"to": 94200
+			},
+			"text": " art, once it comes from the inner self as a reaction from what happens within,"
+		},
+		{
+			"timestamps": {
+				"from": "00:01:34,200",
+				"to": "00:01:42,220"
+			},
+			"offsets": {
+				"from": 94200,
+				"to": 102220
+			},
+			"text": " then the quality probably gets better. The second time I shade it, I hope it"
+		},
+		{
+			"timestamps": {
+				"from": "00:01:42,220",
+				"to": "00:01:47,860"
+			},
+			"offsets": {
+				"from": 102220,
+				"to": 107860
+			},
+			"text": " makes sense. Let's do nothing."
+		}
+	]
+}
