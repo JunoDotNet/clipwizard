@@ -3,106 +3,72 @@ import FilePicker from './components/FilePicker';
 import VideoPlayer from './components/VideoPlayer';
 import useClipPlayback from './hooks/useClipPlayback';
 import useTranscription from './hooks/useTranscription';
-import { Buffer } from 'buffer';
 import ClipTabs from './components/ClipTabs';
 import TranscriptPanel from './components/TranscriptPanel';
 import ExportControls from './components/ExportControls';
-
+import ProjectControls from './components/ProjectControls';
+import AITranscriptImporter from './components/AITranscriptImporter';
 
 
 const App = () => {
   const videoRef = useRef();
   const [videoSrc, setVideoSrc] = useState(null);
   const [transcript, setTranscript] = useState([]);
-  const [clipTabs, setClipTabs] = useState([
-    { id: 'tab-1', name: 'Cut 1', clips: [] },
-  ]);
+  const [clipTabs, setClipTabs] = useState([{ id: 'tab-1', name: 'Cut 1', clips: [] }]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
+  const [selectedFile, setSelectedFile] = useState(null);
   const { transcribe, transcription } = useTranscription();
   const { playClips } = useClipPlayback(videoRef);
-  const [selectedFile, setSelectedFile] = useState(null);
 
   const activeTab = clipTabs.find(tab => tab.id === activeTabId);
 
   const updateActiveTabClips = (updater) => {
-    setClipTabs((prev) =>
-      prev.map((tab) =>
+    setClipTabs(prev =>
+      prev.map(tab =>
         tab.id === activeTabId ? { ...tab, clips: updater(tab.clips) } : tab
       )
     );
   };
 
-
   useEffect(() => {
     if (transcription) {
-      console.log('📋 Updating transcript from Whisper...');
-      const parseTimeString = (timeStr) => {
-        if (!timeStr || typeof timeStr !== 'string') return 0;
-        const parts = timeStr.replace(',', '.').split(':');
-        if (parts.length !== 3) return 0;
-        const [h, m, s] = parts;
-        return Number(h) * 3600 + Number(m) * 60 + Number(s);
+      const parseTime = (t) => {
+        const parts = t.replace(',', '.').split(':');
+        return parts.length === 3 ? (+parts[0]) * 3600 + (+parts[1]) * 60 + (+parts[2]) : 0;
       };
-
-      const parsedTranscript = (transcription.transcription || []).map((seg, index) => {
-        const start = parseTimeString(seg.timestamps?.from);
-        const end = parseTimeString(seg.timestamps?.to);
-        return { ...seg, id: index, start, end };
-      });
-
-      console.log('✅ Parsed transcript:', parsedTranscript);
-      setTranscript(parsedTranscript);
+      const parsed = (transcription.transcription || []).map((seg, i) => ({
+        ...seg,
+        id: i,
+        start: parseTime(seg.timestamps?.from),
+        end: parseTime(seg.timestamps?.to),
+      }));
+      setTranscript(parsed);
     }
   }, [transcription]);
 
   const handleFileSelected = (url, file) => {
-    console.log('📁 handleFileSelected file:', file);
     setVideoSrc(url);
-    setSelectedFile(file); // ✅ store file for export
+    setSelectedFile(file);
     transcribe(file);
   };
 
   const toggleId = (id) => {
-    updateActiveTabClips((prev) => {
-      const exists = prev.find((c) => c.id === id);
-      if (exists) {
-        return prev.filter((c) => c.id !== id);
-      } else {
-        const original = transcript.find((line) => line.id === id);
-        return [...prev, { ...original, startOffset: 0, endOffset: 0 }];
-      }
+    updateActiveTabClips((clips) => {
+      const exists = clips.find(c => c.id === id);
+      if (exists) return clips.filter(c => c.id !== id);
+      const original = transcript.find(l => l.id === id);
+      return [...clips, { ...original, startOffset: 0, endOffset: 0 }];
     });
   };
 
   const updateClipOffset = (id, type, delta) => {
-    updateActiveTabClips((clips) =>
-      clips.map((clip) =>
-        clip.id === id
-          ? { ...clip, [type]: parseFloat((clip[type] || 0) + delta) }
-          : clip
-      )
-    );
-  };
-  
-  const renameTab = (id, newName) => {
-    setClipTabs((prev) =>
-      prev.map((tab) =>
-        tab.id === id ? { ...tab, name: newName } : tab
+    updateActiveTabClips(clips =>
+      clips.map(c =>
+        c.id === id ? { ...c, [type]: +(c[type] || 0) + delta } : c
       )
     );
   };
 
-  const deleteTab = (id) => {
-    setClipTabs((prev) => {
-      const newTabs = prev.filter((tab) => tab.id !== id);
-      if (id === activeTabId && newTabs.length > 0) {
-        setActiveTabId(newTabs[0].id);
-      }
-      return newTabs;
-    });
-  };
-
-  
   const jumpTo = (time) => {
     if (videoRef.current && Number.isFinite(time)) {
       videoRef.current.currentTime = time;
@@ -110,12 +76,61 @@ const App = () => {
     }
   };
 
+  const renameTab = (id, name) => {
+    setClipTabs(tabs => tabs.map(t => t.id === id ? { ...t, name } : t));
+  };
+
+  const deleteTab = (id) => {
+    setClipTabs(prev => {
+      const filtered = prev.filter(tab => tab.id !== id);
+      if (id === activeTabId && filtered.length) setActiveTabId(filtered[0].id);
+      return filtered;
+    });
+  };
+
+  const importAIClipSet = (clipArray, tabName = `AI Cut ${clipTabs.length + 1}`) => {
+    const newId = `tab-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+
+    const matchedClips = clipArray.map((importedClip) => {
+      const match = transcript.find(
+        (t) =>
+          Math.round(t.start) === Math.round(importedClip.start) &&
+          Math.round(t.end) === Math.round(importedClip.end) &&
+          t.text.trim() === importedClip.text.trim()
+      );
+
+      if (match) {
+        return {
+          ...match,
+          startOffset: 0,
+          endOffset: 0,
+        };
+      } else {
+        console.warn('⚠️ Could not match imported clip to transcript:', importedClip);
+        return null;
+      }
+    }).filter(Boolean);
+
+    setClipTabs((prev) => [...prev, { id: newId, name: tabName, clips: matchedClips }]);
+    setActiveTabId(newId);
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h1>🧙 ClipWizard</h1>
-      <FilePicker onFileSelected={handleFileSelected} />
-      {videoSrc && <VideoPlayer src={videoSrc} videoRef={videoRef} />}
 
+      {/* Always visible */}
+      <FilePicker onFileSelected={handleFileSelected} />
+      <ProjectControls
+        setTranscript={setTranscript}
+        setClipTabs={setClipTabs}
+        setActiveTabId={setActiveTabId}
+        setSelectedFile={setSelectedFile}
+        setVideoSrc={setVideoSrc}
+      />
+      <VideoPlayer src={videoSrc} videoRef={videoRef} />
+      
       {transcript.length > 0 && (
         <>
           <ClipTabs
@@ -123,9 +138,9 @@ const App = () => {
             activeTabId={activeTabId}
             setActiveTabId={setActiveTabId}
             addTab={() => {
-              const newId = `tab-${Date.now()}`;
-              setClipTabs((prev) => [...prev, { id: newId, name: `Cut ${prev.length + 1}`, clips: [] }]);
-              setActiveTabId(newId);
+              const id = `tab-${Date.now()}`;
+              setClipTabs(tabs => [...tabs, { id, name: `Cut ${tabs.length + 1}`, clips: [] }]);
+              setActiveTabId(id);
             }}
             renameTab={renameTab}
             deleteTab={deleteTab}
@@ -139,18 +154,21 @@ const App = () => {
             updateClipOffset={updateClipOffset}
             playClips={playClips}
           />
-          
+
           <ExportControls
             selectedFile={selectedFile}
             transcript={transcript}
-            setSelectedFile={setSelectedFile}
-            setTranscript={setTranscript}
-            setVideoSrc={setVideoSrc}
             clipTabs={clipTabs}
-            setClipTabs={setClipTabs}
             activeTabId={activeTabId}
-            setActiveTabId={setActiveTabId}
           />
+
+          <AITranscriptImporter
+            onImport={(clips, tabName) => {
+              importAIClipSet(clips, tabName);
+            }}
+          />
+
+
         </>
       )}
     </div>
