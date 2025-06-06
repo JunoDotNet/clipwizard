@@ -8,7 +8,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = path.join(app.getAppPath(), 'src', 'whisper', 'ffmpeg.exe'); 
 ffmpeg.setFfmpegPath(ffmpegPath);
 const { extractAudioWav } = require('./main/extractAudioWav');
-
+const { dialog } = require('electron');
+const { exportClips, concatClips } = require('./main/exportClips');
 
 
 // ✅ Define isDev before using it
@@ -46,7 +47,7 @@ app.whenReady().then(() => {
     });
   });
 
-  ipcMain.handle('transcribe-buffer', async (event, buffer, fileName) => {
+  ipcMain.handle('transcribe-buffer', async (event, buffer, fileName, rawClips) => {
     const ext = path.extname(fileName).toLowerCase();
     const baseName = `input-${uuidv4()}`;
     const outputDir = app.getPath('userData');
@@ -126,8 +127,75 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('export-clips', async (event, buffer, fileName, rawClips) => {
+    try {
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        title: 'Save Final Video',
+        defaultPath: 'clipwizard-output.mp4',
+        filters: [{ name: 'Video', extensions: ['mp4'] }],
+      });
 
+      if (canceled || !filePath) return null;
 
+      // Convert offset data
+      const clips = rawClips.map(c => ({
+        adjustedStart: c.start + (c.startOffset || 0),
+        adjustedEnd: c.end + (c.endOffset || 0),
+      }));
+
+      const { clipPaths } = await exportClips(buffer, fileName, clips);
+      await concatClips(clipPaths, filePath);
+
+      return filePath;
+    } catch (err) {
+      console.error('❌ Export failed:', err);
+      throw err;
+    }
+  });
+
+  ipcMain.handle('save-project', async (event, data) => {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      filters: [{ name: 'ClipWizard Project', extensions: ['wizard'] }],
+      defaultPath: `${data.videoFileName.replace(/\.[^/.]+$/, '')}.wizard`,
+    });
+    if (canceled || !filePath) return null;
+
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    return filePath;
+  });
+
+  // Load project from .wizard file
+  ipcMain.handle('load-project', async () => {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      filters: [{ name: 'ClipWizard Project', extensions: ['wizard'] }],
+      properties: ['openFile']
+    });
+    if (canceled || !filePaths.length) return null;
+
+    const raw = fs.readFileSync(filePaths[0], 'utf8');
+    return JSON.parse(raw);
+  });
+
+  ipcMain.handle('read-file-as-blob', async (_, filePath) => {
+    const data = fs.readFileSync(filePath);
+    return data.buffer; // or Buffer.from(data)
+  });
+
+  ipcMain.handle('select-video-file', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Select a video file',
+      filters: [{ name: 'Video Files', extensions: ['mp4', 'mov', 'mkv', 'webm'] }],
+      properties: ['openFile']
+    });
+
+    if (canceled || !filePaths.length) return null;
+    return filePaths[0];
+  });
+
+  ipcMain.handle('read-video-buffer', async (_, filePath) => {
+    const buffer = fs.readFileSync(filePath);
+    return buffer;
+  });
 
 
 

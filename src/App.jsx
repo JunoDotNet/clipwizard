@@ -5,6 +5,8 @@ import TranscriptList from './components/TranscriptList';
 import ClipEditor from './components/ClipEditor';
 import useClipPlayback from './hooks/useClipPlayback';
 import useTranscription from './hooks/useTranscription';
+import { Buffer } from 'buffer';
+
 
 const App = () => {
   const videoRef = useRef();
@@ -13,6 +15,8 @@ const App = () => {
   const [selectedClips, setSelectedClips] = useState([]);
   const { transcribe, transcription } = useTranscription();
   const { playClips } = useClipPlayback(videoRef);
+  const [selectedFile, setSelectedFile] = useState(null);
+
 
   useEffect(() => {
     if (transcription) {
@@ -37,7 +41,9 @@ const App = () => {
   }, [transcription]);
 
   const handleFileSelected = (url, file) => {
+    console.log('📁 handleFileSelected file:', file);
     setVideoSrc(url);
+    setSelectedFile(file); // ✅ store file for export
     transcribe(file);
   };
 
@@ -90,6 +96,67 @@ const App = () => {
           <button onClick={() => playClips(selectedClips)} style={{ marginTop: 10 }}>
             ▶️ Play Selected
           </button>
+
+          <button
+            onClick={async () => {
+              const buffer = await selectedFile.originalFile.arrayBuffer();
+              const nodeBuffer = Buffer.from(buffer);
+              const path = await window.electronAPI.exportClips(
+                nodeBuffer,
+                selectedFile.name,
+                selectedClips
+              );
+              if (path) alert(`✅ Exported to:\n${path}`);
+            }}
+            style={{ marginTop: 10 }}
+          >
+            🪄 Export Final Video
+          </button>
+
+          <button
+            onClick={async () => {
+              if (!selectedFile) return alert('No file loaded.');
+
+              console.log('💾 selectedFile when saving:', selectedFile); // ✅ <--- Add this line
+
+              const project = {
+                videoFileName: selectedFile.name,
+                videoFilePath: selectedFile.path,
+                transcript,
+                selectedClips,
+              };
+              const result = await window.electronAPI.saveProject(project);
+              if (result) alert(`✅ Project saved to:\n${result}`);
+            }}
+            style={{ marginTop: 10 }}
+          >
+            💾 Save Project
+          </button>
+
+          <button
+            onClick={async () => {
+              const data = await window.electronAPI.loadProject();
+              console.log('📂 Loaded .wizard data:', data); // ✅ log full object
+              if (!data) return alert('❌ No project file loaded.');
+              if (!data.videoFilePath) return alert('❌ Missing videoFilePath in project.');
+
+              setTranscript(data.transcript || []);
+              setSelectedClips(data.selectedClips || []);
+              setSelectedFile({
+                name: data.videoFileName,
+                path: data.videoFilePath,
+              });
+
+              const buffer = await window.electronAPI.readFileAsBlob(data.videoFilePath);
+              const blob = new Blob([buffer], { type: 'video/mp4' }); // or detect type from file extension
+              const videoURL = URL.createObjectURL(blob);
+
+              setVideoSrc(videoURL);
+            }}
+          >
+            📂 Load Project
+          </button>
+
         </>
       )}
     </div>

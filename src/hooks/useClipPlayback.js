@@ -52,7 +52,10 @@ const useClipPlayback = (videoRef) => {
       const { adjustedStart, adjustedEnd } = offsetClips[index];
 
       video.currentTime = adjustedStart;
-      video.play();
+      video.play().catch((err) => {
+        console.warn('⚠️ video.play() error (often safe to ignore):', err.message);
+      });
+
 
       const onTimeUpdate = () => {
         if (video.currentTime >= adjustedEnd) {

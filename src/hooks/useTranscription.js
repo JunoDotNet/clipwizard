@@ -13,7 +13,8 @@ export default function useTranscription() {
     setError(null);
 
     try {
-        const arrayBuffer = await file.arrayBuffer();
+        const rawFile = file.originalFile || file;
+        const arrayBuffer = await rawFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer); // 👈 Convert to Node Buffer
         const result = await window.electronAPI.transcribeBuffer(buffer, file.name);
         console.log('📝 Transcription result:', result);
