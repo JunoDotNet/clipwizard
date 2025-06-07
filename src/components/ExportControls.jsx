@@ -2,6 +2,9 @@
 import React from 'react';
 import { Buffer } from 'buffer';
 import exportInstructions from '../utils/exportInstructions';
+import { exportAllTabsAsXml } from '../utils/exportAllTabsToXml';
+import exportToPremiereXml from '../utils/exportToPremiereXml';
+import { saveAs } from 'file-saver';
 
 
 
@@ -64,6 +67,44 @@ const handleExportRawText = async () => {
   a.click();
 };
 
+const handleExportPremiereXml = async () => {
+  if (!selectedFile?.path || !Array.isArray(activeTabClips) || activeTabClips.length === 0) {
+    return alert('❌ Missing file or clips to export.');
+  }
+
+  const cutName = activeTab?.name || selectedFile.name.replace(/\.[^/.]+$/, '');
+  const resolution = await window.electronAPI.getVideoResolution(selectedFile.path) || { width: 1920, height: 1080 };
+  console.log('🧠 XML Export - Video Path:', selectedFile.path);
+  console.log('🧠 XML Export - Cut Name:', cutName);
+  console.log('🧠 XML Export - Video Resolution:', resolution);
+ 
+  const xml = exportToPremiereXml(
+    activeTabClips,
+    selectedFile.path,
+    cutName,
+    resolution
+  );
+
+  const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${cutName}.xml`;
+  a.click();
+};
+
+
+
+
+
+const handleExportAllXml = async () => {
+  if (!selectedFile?.path) return alert('❌ No file loaded.');
+  const resolution = await window.electronAPI.getVideoResolution(selectedFile.path) || { width: 1920, height: 1080 };
+  console.log('📦 Export All Tabs - Video Resolution:', resolution);
+  await exportAllTabsAsXml(clipTabs, selectedFile.path, resolution);
+};
+
+
+
   return (
     <div style={{ marginTop: 10 }}>
       <button onClick={handleExport}>🪄 Export Final Video</button>
@@ -75,6 +116,15 @@ const handleExportRawText = async () => {
       <button onClick={handleExportRawText} style={{ marginLeft: 10 }}>
         📄 Export Editable Transcript
       </button>
+
+      <button onClick={handleExportPremiereXml} style={{ marginLeft: 10 }}>
+        🎬 Export Premiere XML
+      </button>
+
+      <button onClick={handleExportAllXml} style={{ marginLeft: 10 }}>
+        🧩 Export All Tabs as XML
+      </button>
+
 
     </div>
   );

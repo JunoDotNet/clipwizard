@@ -22,4 +22,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFileAsBlob: (filePath) =>
   ipcRenderer.invoke('read-file-as-blob', filePath),
 
+  getVideoResolution: (videoPath) => ipcRenderer.invoke('get-video-resolution', videoPath),
+
+  saveXmlFile: (defaultFileName, xmlContent) =>
+    ipcRenderer.invoke('save-xml-file', defaultFileName, xmlContent),
+
 });

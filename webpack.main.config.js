@@ -1,17 +1,22 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const ffprobeStatic = require('ffprobe-static');
+
 
 module.exports = {
   entry: {
     main: './src/main.js',
-    preload: './src/preload.js', // ✅ include preload explicitly
+    preload: './src/preload.js',
   },
   output: {
-    filename: '[name].js', // ✅ output both main.js and preload.js
+    filename: '[name].js',
     path: path.resolve(__dirname, '.webpack/main'),
   },
   module: {
     rules: require('./webpack.rules'),
+  },
+  externals: {
+    'ffprobe-static': 'commonjs2 ffprobe-static', // 👈 prevents it from being bundled
   },
   plugins: [
     new CopyWebpackPlugin({
@@ -27,6 +32,10 @@ module.exports = {
         {
           from: path.resolve(__dirname, 'src/whisper/ffmpeg.exe'),
           to: 'whisper',
+        },
+        {
+          from: ffprobeStatic.path, 
+          to: 'whisper/ffprobe.exe',
         },
       ],
     }),

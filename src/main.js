@@ -3,10 +3,21 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { v4: uuidv4 } = require('uuid'); // Make sure you npm install uuid
+const { v4: uuidv4 } = require('uuid');
 const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = path.join(app.getAppPath(), 'src', 'whisper', 'ffmpeg.exe'); 
+const ffprobeStatic = require('ffprobe-static');
+const ffprobeRuntimePath = path.join(app.getAppPath(), 'whisper', 'ffprobe.exe');
+console.log('🧠 ffprobe path set to:', ffprobeRuntimePath);
+ffmpeg.setFfprobePath(ffprobeRuntimePath);
+
+console.log('🧠 ffprobeStatic.path:', ffprobeStatic.path); 
+console.log('ffprobe-static module:', ffprobeStatic);
+
+
+const ffmpegPath = path.join(app.getAppPath(), 'src', 'whisper', 'ffmpeg.exe');
 ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobeStatic.path);
+
 const { extractAudioWav } = require('./main/extractAudioWav');
 const { dialog } = require('electron');
 const { exportClips, concatClips } = require('./main/exportClips');
@@ -196,6 +207,39 @@ app.whenReady().then(() => {
     const buffer = fs.readFileSync(filePath);
     return buffer;
   });
+
+  ipcMain.handle('save-xml-file', async (event, defaultFileName, xmlContent) => {
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: 'Export XML Timeline',
+      defaultPath: defaultFileName.endsWith('.xml') ? defaultFileName : `${defaultFileName}.xml`,
+      filters: [{ name: 'Premiere XML', extensions: ['xml'] }]
+    });
+
+    if (canceled || !filePath) return null;
+
+    fs.writeFileSync(filePath, xmlContent, 'utf8');
+    return filePath;
+  });
+  
+  ipcMain.handle('get-video-resolution', async (event, filePath) => {
+    console.log('[get-video-resolution] ffprobe path:', ffmpeg._getFfprobePath?.());
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(filePath, (err, metadata) => {
+        if (err) {
+          console.error('[get-video-resolution] ffprobe error:', err);
+          return reject(err);
+        }
+        const stream = metadata.streams.find(s => s.width && s.height);
+        if (stream) {
+          resolve({ width: stream.width, height: stream.height });
+        } else {
+          console.warn('[get-video-resolution] No valid video stream found');
+          resolve(null);
+        }
+      });
+    });
+  });
+
 
 
 
