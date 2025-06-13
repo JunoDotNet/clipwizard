@@ -13,7 +13,13 @@ const VideoPlayer = ({ src, videoRef }) => {
       ref={videoRef}
       src={src}
       controls
-      style={{ width: '100%', marginTop: 10 }}
+      style={{
+        width: 960,
+        aspectRatio: '16 / 9',
+        background: 'black',
+        margin: '20px auto',
+        display: 'block',
+      }}
     />
   );
 };
