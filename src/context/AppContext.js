@@ -8,7 +8,11 @@ export const AppProvider = ({ children }) => {
   const [clipTabs, setClipTabs] = useState([{ id: 'tab-1', name: 'Cut 1', clips: [] }]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
   const [selectedFile, setSelectedFile] = useState(null);
-  const [highlightedSections, setHighlightedSections] = useState([]); // [{ startId, endId, color }]
+  const [highlightedSections, setHighlightedSections] = useState([]); 
+  const [highlightLabels, setHighlightLabels] = useState([
+    { id: 'label-1', name: 'Intro', color: '#ffcc00' },
+  ]);
+
 
 
   return (
@@ -20,6 +24,7 @@ export const AppProvider = ({ children }) => {
         activeTabId, setActiveTabId,
         selectedFile, setSelectedFile,
         highlightedSections, setHighlightedSections,
+        highlightLabels, setHighlightLabels,
       }}
     >
       {children}

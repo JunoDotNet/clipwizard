@@ -1,6 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-
-import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import FilePicker from '../components/FilePicker';
 import ProjectControls from '../components/ProjectControls';
@@ -8,20 +6,21 @@ import VideoPlayer from '../components/VideoPlayer';
 import useTranscription from '../hooks/useTranscription';
 import TranscriptList from '../components/TranscriptList';
 import { insertHighlightSection } from '../utils/highlightUtils';
-
+import HighlightLabelManager from '../components/HighlightLabelManager';
 
 const ImportPage = () => {
   const {
     setVideoSrc, setTranscript, setClipTabs, setSelectedFile, setActiveTabId,
-    videoSrc, transcript, highlightedSections, setHighlightedSections
+    videoSrc, transcript, highlightedSections, setHighlightedSections, highlightLabels
   } = useAppContext();
-
 
   const { transcribe, transcription } = useTranscription();
   const videoRef = useRef();
-  const navigate = useNavigate();
   const [markingStartId, setMarkingStartId] = useState(null);
-  const [color, setColor] = useState('#ffcc00'); // default color
+  const [activeLabelId, setActiveLabelId] = useState(null);
+
+  const getLabelColor = (id) =>
+    highlightLabels.find(label => label.id === id)?.color || '#ffcc00';
 
   useEffect(() => {
     if (transcription) {
@@ -38,7 +37,6 @@ const ImportPage = () => {
       }));
 
       setTranscript(parsed);
-      // Stay on page — don't navigate to /edit yet
     }
   }, [transcription]);
 
@@ -55,10 +53,12 @@ const ImportPage = () => {
     }
   };
 
-  const overlaps = (aStart, aEnd, bStart, bEnd) =>
-  aStart <= bEnd && aEnd >= bStart && !(aEnd === bStart || aStart === bEnd);
-
   const handleMark = (id) => {
+    if (!activeLabelId) {
+      alert("❗ Please select a label first.");
+      return;
+    }
+
     if (markingStartId === null) {
       setMarkingStartId(id);
     } else {
@@ -69,16 +69,23 @@ const ImportPage = () => {
       const startTime = Math.min(startLine.start, endLine.start);
       const endTime = Math.max(startLine.end, endLine.end);
 
-      const newSection = { startTime, endTime, color };
+      const newSection = {
+        startTime,
+        endTime,
+        color: getLabelColor(activeLabelId),
+        labelId: activeLabelId,
+      };
+
 
       setHighlightedSections(prev =>
         insertHighlightSection(prev, newSection)
+        
       );
-
+      console.log("🔥 Highlight added:", newSection);
       setMarkingStartId(null);
+      setActiveLabelId(null); // exit highlight mode
     }
   };
-
 
   return (
     <div style={{ padding: 20 }}>
@@ -98,7 +105,7 @@ const ImportPage = () => {
           <h3>📝 Transcript</h3>
           <TranscriptList
             transcript={transcript}
-            selectedIds={[]} // no toggles yet
+            selectedIds={[]}
             toggleId={null}
             jumpTo={jumpTo}
             onClickLine={handleMark}
@@ -106,31 +113,20 @@ const ImportPage = () => {
           />
 
           <div style={{ marginTop: 10 }}>
-            <label>
-              <span>Section Color: </span>
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                disabled={markingStartId !== null} // lock color once marking started
-              />
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 20,
-                  height: 20,
-                  backgroundColor: color,
-                  border: '1px solid #888',
-                  marginLeft: 10,
-                  verticalAlign: 'middle'
-                }}
-              />
-            </label>
-
+            <HighlightLabelManager setActiveLabelId={setActiveLabelId} />
             <p style={{ marginTop: 6 }}>
-              {markingStartId === null ? (
-                'Click a transcript line to start a highlight.'
-              ) : (
+              {activeLabelId && markingStartId === null && (
+                <>
+                  🖊️ Highlight mode: <strong>{highlightLabels.find(l => l.id === activeLabelId)?.name}</strong><br />
+                  Click a transcript line to start the highlight.
+                  <br />
+                  <button onClick={() => setActiveLabelId(null)} style={{ marginTop: 6 }}>
+                    ❌ Cancel Highlight Mode
+                  </button>
+                </>
+              )}
+
+              {markingStartId !== null && (
                 <>
                   Highlight started at line <strong>{markingStartId}</strong>.<br />
                   Now click the end line to confirm.
@@ -140,9 +136,12 @@ const ImportPage = () => {
                   </button>
                 </>
               )}
+
+              {!activeLabelId && markingStartId === null && (
+                'Click “Use” on a label to begin highlighting.'
+              )}
             </p>
           </div>
-
         </>
       )}
     </div>
