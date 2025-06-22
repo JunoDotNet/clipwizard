@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import VideoPlayer from '../components/VideoPlayer';
 import ClipTabs from '../components/ClipTabs';
@@ -9,10 +9,21 @@ import useClipPlayback from '../hooks/useClipPlayback';
 const EditPage = () => {
   const videoRef = useRef();
   const {
-    videoSrc, transcript, clipTabs, setClipTabs, activeTabId, setActiveTabId
+    videoSrc,
+    transcript,
+    clipTabs,
+    setClipTabs,
+    activeTabId,
+    setActiveTabId,
+    highlightedSections,
+    highlightLabels,
   } = useAppContext();
 
+
   const activeTab = clipTabs.find(tab => tab.id === activeTabId);
+
+  const [activeHighlightFilter, setActiveHighlightFilter] = useState(null);
+
   const { playClips } = useClipPlayback(videoRef);
 
   const updateActiveTabClips = (updater) => {
@@ -74,6 +85,34 @@ const EditPage = () => {
     setActiveTabId(newId);
   };
 
+  const filteredTranscript = activeHighlightFilter
+    ? transcript
+        .filter(line =>
+          highlightedSections.some(h =>
+            h.labelId === activeHighlightFilter &&
+            line.start >= h.startTime &&
+            line.end <= h.endTime
+          )
+        )
+        .map(line => {
+          const highlight = highlightedSections.find(h =>
+            h.labelId === activeHighlightFilter &&
+            line.start >= h.startTime &&
+            line.end <= h.endTime
+          );
+          return highlight ? { ...line, __highlightColor: highlight.color } : line;
+        })
+    : transcript.map(line => {
+        const highlight = highlightedSections.find(h =>
+          line.start >= h.startTime &&
+          line.end <= h.endTime
+        );
+        return highlight ? { ...line, __highlightColor: highlight.color } : line;
+    });
+
+
+
+
   return (
     <div style={{ padding: 20 }}>
       <h2>✂️ Edit Clips</h2>
@@ -92,14 +131,43 @@ const EditPage = () => {
         deleteTab={deleteTab}
       />
 
-      <TranscriptPanel
-        transcript={transcript}
-        selectedClips={activeTab?.clips || []}
-        toggleId={toggleId}
-        jumpTo={jumpTo}
-        updateClipOffset={updateClipOffset}
-        playClips={playClips}
-      />
+      <div style={{ display: 'flex' }}>
+        <div style={{ minWidth: 180, marginRight: 20 }}>
+          <h4>🗂 Show Section</h4>
+          <button onClick={() => setActiveHighlightFilter(null)} style={{ marginBottom: 6 }}>
+            Show Full Transcript
+          </button>
+          {highlightLabels.map(label => (
+            <button
+              key={label.id}
+              onClick={() => setActiveHighlightFilter(label.id)}
+              style={{
+                display: 'block',
+                marginBottom: 4,
+                backgroundColor: activeHighlightFilter === label.id ? label.color : '#eee',
+                border: '1px solid #ccc',
+                padding: '4px 6px',
+                width: '100%',
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              {label.name}
+            </button>
+          ))}
+        </div>
+
+        <TranscriptPanel
+          transcript={filteredTranscript}
+          selectedClips={activeTab?.clips || []}
+          toggleId={toggleId}
+          jumpTo={jumpTo}
+          updateClipOffset={updateClipOffset}
+          playClips={playClips}
+          highlightedSections={highlightedSections}
+        />
+      </div>
+
 
       <AITranscriptImporter onImport={importAIClipSet} />
     </div>

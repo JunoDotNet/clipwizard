@@ -45,19 +45,21 @@ const TranscriptList = ({
       {transcript.map((line) => {
         const isSelected = selectedIds.includes(line.id);
         const marker = lineMarkers[line.id];
-        const background = (() => {
-          for (const section of highlightedSections) {
-            if (
-              line.start >= section.startTime &&
-              line.end <= section.endTime &&
-              section.labelId &&
-              labelMap[section.labelId]
-            ) {
-              return section.color;
+        const background = line.__highlightColor
+          || (() => {
+            for (const section of highlightedSections) {
+              if (
+                line.start >= section.startTime &&
+                line.end <= section.endTime &&
+                section.labelId &&
+                labelMap[section.labelId]
+              ) {
+                return section.color;
+              }
             }
-          }
-          return 'transparent';
-        })();
+            return 'transparent';
+          })();
+
 
         const rightTag =
           marker?.type === 'middle' ? (
