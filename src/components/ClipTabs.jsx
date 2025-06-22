@@ -6,7 +6,7 @@ const ClipTabs = ({ tabs, activeTabId, setActiveTabId, addTab, renameTab, delete
   const [tempName, setTempName] = useState('');
 
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
       {tabs.map((tab) => (
         <div key={tab.id} style={{ display: 'flex', alignItems: 'center' }}>
           {editingId === tab.id ? (
