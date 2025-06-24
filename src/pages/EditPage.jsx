@@ -103,7 +103,12 @@ const EditPage = () => {
       return match ? { ...match, startOffset: 0, endOffset: 0 } : null;
     }).filter(Boolean);
 
-    setClipTabs(prev => [...prev, { id: newId, name: tabName, clips: matched }]);
+    setClipTabs(tabs => [...tabs, {
+      id,
+      name: `Cut ${tabs.length + 1}`,
+      clips: [],
+      description: '',
+    }]);
     setActiveTabId(newId);
   };
 

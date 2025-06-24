@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   saveProject: (data) => ipcRenderer.invoke('save-project', data), 
 
+  showSaveDialog: (options) => ipcRenderer.invoke('show-save-dialog', options),
+
+
   loadProject: () => ipcRenderer.invoke('load-project'),          
 
   readVideoBuffer: (filePath) => ipcRenderer.invoke('read-video-buffer', filePath),
@@ -23,6 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ipcRenderer.invoke('read-file-as-blob', filePath),
 
   getVideoResolution: (videoPath) => ipcRenderer.invoke('get-video-resolution', videoPath),
+
+  exportSingleCut: (buffer, fileName, clips, outputPath) =>
+  ipcRenderer.invoke('export-single-cut', buffer, fileName, clips, outputPath),
+
 
   saveXmlFile: (defaultFileName, xmlContent) =>
     ipcRenderer.invoke('save-xml-file', defaultFileName, xmlContent),

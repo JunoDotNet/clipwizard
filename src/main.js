@@ -12,6 +12,7 @@ ffmpeg.setFfprobePath(ffprobeRuntimePath);
 
 console.log('🧠 ffprobeStatic.path:', ffprobeStatic.path); 
 console.log('ffprobe-static module:', ffprobeStatic);
+console.log('🚀 Loaded MAIN process from', __filename);
 
 
 const ffmpegPath = path.join(app.getAppPath(), 'src', 'whisper', 'ffmpeg.exe');
@@ -164,10 +165,37 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('export-single-cut', async (event, buffer, fileName, clips, outputPath) => {
+    try {
+      if (!outputPath) throw new Error('No output path provided.');
+
+      const adjustedClips = clips.map(c => ({
+        adjustedStart: c.start + (c.startOffset || 0),
+        adjustedEnd: c.end + (c.endOffset || 0),
+      }));
+
+      const { clipPaths } = await exportClips(buffer, fileName, adjustedClips);
+      await concatClips(clipPaths, outputPath);
+
+      return outputPath;
+    } catch (err) {
+      console.error('❌ export-single-cut failed:', err);
+      throw err;
+    }
+  });
+
+  ipcMain.handle('show-save-dialog', async (_, options) => {
+    console.log('📁 show-save-dialog called with:', options); // <--- ADD THIS
+    const result = await dialog.showSaveDialog(options);
+    return result;
+  });
+
+
   ipcMain.handle('save-project', async (event, data) => {
     const { filePath, canceled } = await dialog.showSaveDialog({
       filters: [{ name: 'ClipWizard Project', extensions: ['wizard'] }],
-      defaultPath: `${data.videoFileName.replace(/\.[^/.]+$/, '')}.wizard`,
+      defaultPath: `${(data.videoFileName || 'Untitled')?.replace(/\.[^/.]+$/, '')}.wizard`,
+
     });
     if (canceled || !filePath) return null;
 
