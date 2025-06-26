@@ -124,7 +124,8 @@ app.whenReady().then(() => {
 
               try {
                 const parsed = JSON.parse(data);
-                resolve(parsed);
+                resolve({ transcript: parsed, wavPath: finalWavPath });
+
               } catch (e) {
                 console.error('❌ Failed to parse Whisper output:', data);
                 reject(e);

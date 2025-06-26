@@ -8,12 +8,11 @@ export const AppProvider = ({ children }) => {
   const [clipTabs, setClipTabs] = useState([{ id: 'tab-1', name: 'Cut 1', clips: [] }]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
   const [selectedFile, setSelectedFile] = useState(null);
-  const [highlightedSections, setHighlightedSections] = useState([]); 
+  const [highlightedSections, setHighlightedSections] = useState([]);
   const [highlightLabels, setHighlightLabels] = useState([
     { id: 'label-1', name: 'Intro', color: '#ffcc00' },
   ]);
-
-
+  const [wavPath, setWavPath] = useState(null); // ✅ NEW
 
   return (
     <AppContext.Provider
@@ -25,11 +24,13 @@ export const AppProvider = ({ children }) => {
         selectedFile, setSelectedFile,
         highlightedSections, setHighlightedSections,
         highlightLabels, setHighlightLabels,
+        wavPath, setWavPath, // ✅ NEW
       }}
     >
       {children}
     </AppContext.Provider>
   );
 };
+
 
 export const useAppContext = () => useContext(AppContext);

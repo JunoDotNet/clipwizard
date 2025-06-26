@@ -10,6 +10,7 @@ import DropZone from '../components/DropZone';
 import { arrayMove } from '@dnd-kit/sortable'; 
 import { v4 as uuidv4 } from 'uuid';
 import ClipEditor from '../components/ClipEditor';
+import ClipWaveformEditor from '../components/ClipWaveFormEditor';
 
 const EditPage = () => {
   const videoRef = useRef();
@@ -169,8 +170,8 @@ const EditPage = () => {
           <VideoPlayer src={videoSrc} videoRef={videoRef} />
         </div>
         <div style={{ flex: '0 0 40%' }}>
-          <ClipEditor
-            selectedClip={selectedClip}
+          <ClipWaveformEditor
+            clip={selectedClip}
             updateClipOffset={updateClipOffset}
           />
         </div>

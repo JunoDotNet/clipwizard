@@ -60,7 +60,6 @@ const TranscriptList = ({
             return 'transparent';
           })();
 
-
         const rightTag =
           marker?.type === 'middle' ? (
             <span style={{ opacity: 0.4, fontWeight: 'bold' }}>|</span>

@@ -69,5 +69,4 @@ module.exports = {
       await fs.copy('./whisper', dest); // ✅ this will copy ffmpeg.exe and whisper.exe
     },
   },
-
 };
