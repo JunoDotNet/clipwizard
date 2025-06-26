@@ -34,4 +34,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveXmlFile: (defaultFileName, xmlContent) =>
     ipcRenderer.invoke('save-xml-file', defaultFileName, xmlContent),
 
+  getWavBlobUrl: (wavPath) =>
+  ipcRenderer.invoke('get-wav-buffer', wavPath).then((buffer) => {
+    const blob = new Blob([buffer], { type: 'audio/wav' });
+    return URL.createObjectURL(blob);
+  }),
+
+
 });

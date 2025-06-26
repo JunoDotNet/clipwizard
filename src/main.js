@@ -46,6 +46,12 @@ const createWindow = () => {
   mainWindow.webContents.openDevTools();
 };
 
+
+  ipcMain.handle('get-wav-buffer', async (event, wavPath) => {
+    return fs.readFileSync(wavPath);
+  });
+
+
 app.whenReady().then(() => {
   // ✅ Set up CSP headers
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -139,6 +145,7 @@ app.whenReady().then(() => {
       throw err;
     }
   });
+
 
   ipcMain.handle('export-clips', async (event, buffer, fileName, rawClips) => {
     try {

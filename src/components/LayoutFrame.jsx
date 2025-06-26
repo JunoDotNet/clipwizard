@@ -47,6 +47,7 @@ const LayoutFrame = ({ children }) => {
         <NavLink to="/" style={navLinkStyle}>📥 Import</NavLink>
         <NavLink to="/edit" style={navLinkStyle}>✂️ Edit</NavLink>
         <NavLink to="/export" style={navLinkStyle}>📤 Export</NavLink>
+        <NavLink to="/test" style={navLinkStyle}> Test</NavLink>
         <div style={{ flex: 1 }} />
         <button onClick={handleSave}>💾 Save Project</button>
       </header>

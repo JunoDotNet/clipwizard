@@ -165,17 +165,50 @@ const EditPage = () => {
   return (
     <>
       <h2>✂️ Edit Clips</h2>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-        <div style={{ flex: '0 0 60%' }}>
-          <VideoPlayer src={videoSrc} videoRef={videoRef} />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 40,
+          alignItems: 'flex-start',
+          maxWidth: 1600,
+          margin: '0 auto',
+          padding: '10px 0',
+        }}
+      >
+        <div
+          style={{
+            width: 960,
+            aspectRatio: '16 / 9',
+            background: 'black',
+            contain: 'layout paint',
+          }}
+        >
+          {videoSrc ? (
+            <VideoPlayer src={videoSrc} videoRef={videoRef} />
+          ) : (
+            <p>⚠️ No video loaded.</p>
+          )}
         </div>
-        <div style={{ flex: '0 0 40%' }}>
+
+        <div
+          style={{
+            width: 640,
+            minWidth: 640,
+            marginTop: 10,
+            contain: 'layout paint',
+          }}
+        >
           <ClipWaveformEditor
-            clip={selectedClip}
+            clips={activeTab?.clips || []}
+            videoRef={videoRef}
             updateClipOffset={updateClipOffset}
+            selectedClip={selectedClip}
           />
+
         </div>
       </div>
+
 
       <DndContext
         onDragStart={({ active }) => setActiveDragLine(active?.data?.current?.line || null)}
