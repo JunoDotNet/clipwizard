@@ -4,8 +4,10 @@ import { useAppContext } from '../context/AppContext';
 
 const LayoutFrame = ({ children }) => {
   const {
-    selectedFile, transcript, clipTabs, activeTabId
-  } = useAppContext();
+    selectedFile, transcript, clipTabs, activeTabId,
+    highlightLabels, highlightedSections
+  } = useAppContext(); // add these two
+
 
   const handleSave = async () => {
     if (!selectedFile) return alert('❌ No file loaded.');
@@ -15,6 +17,8 @@ const LayoutFrame = ({ children }) => {
       transcript,
       clipTabs,
       activeTabId,
+      highlightLabels,
+      highlightedSections,
     };
     const result = await window.electronAPI.saveProject(project);
     if (result) alert(`✅ Project saved to:\n${result}`);

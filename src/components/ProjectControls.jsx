@@ -1,5 +1,5 @@
-// src/components/ProjectControls.jsx
 import React from 'react';
+import { useAppContext } from '../context/AppContext';
 
 const ProjectControls = ({
   setTranscript,
@@ -8,6 +8,11 @@ const ProjectControls = ({
   setSelectedFile,
   setVideoSrc,
 }) => {
+  const {
+    setHighlightLabels,
+    setHighlightedSections,
+  } = useAppContext();
+
   const handleLoad = async () => {
     const data = await window.electronAPI.loadProject();
     if (!data) return alert('❌ No project file loaded.');
@@ -22,6 +27,9 @@ const ProjectControls = ({
       name: data.videoFileName,
       path: data.videoFilePath,
     });
+
+    setHighlightLabels(data.highlightLabels || []);
+    setHighlightedSections(data.highlightedSections || []);
 
     const buffer = await window.electronAPI.readFileAsBlob(data.videoFilePath);
     const blob = new Blob([buffer], { type: 'video/mp4' });
