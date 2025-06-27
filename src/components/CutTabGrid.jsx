@@ -1,6 +1,22 @@
 import React from 'react';
+import ColorStackPreview from './ColorStackPreview';
+import { useAppContext } from '../context/AppContext';
 
 const CutTabGrid = ({ tabs, selectedIds, toggleTab, updateDescription, onPlayTab }) => {
+  // ✅ Call useAppContext at the top level
+  const { highlightedSections, transcript } = useAppContext();
+
+  const getTabHighlights = (tab) =>
+    highlightedSections.filter(h =>
+      tab.clips.some(c =>
+        h.endTime > c.start && h.startTime < c.end // overlap, not just containment
+      )
+    );
+
+  const totalDuration = transcript.length
+    ? Math.max(...transcript.map(t => t.end))
+    : 1;
+
   return (
     <div
       style={{
@@ -11,11 +27,12 @@ const CutTabGrid = ({ tabs, selectedIds, toggleTab, updateDescription, onPlayTab
     >
       {tabs.map((tab) => {
         const isSelected = selectedIds.includes(tab.id);
+        const highlights = getTabHighlights(tab); // ✅ compute once here
 
         return (
           <div
             key={tab.id}
-            onClick={() => onPlayTab?.(tab)} // ✅ play when tile clicked
+            onClick={() => onPlayTab?.(tab)}
             style={{
               position: 'relative',
               border: '1px solid #ccc',
@@ -36,7 +53,7 @@ const CutTabGrid = ({ tabs, selectedIds, toggleTab, updateDescription, onPlayTab
               type="checkbox"
               checked={isSelected}
               onChange={(e) => {
-                e.stopPropagation(); // ✅ prevent triggering onClick
+                e.stopPropagation();
                 toggleTab(tab.id);
               }}
               style={{
@@ -50,11 +67,22 @@ const CutTabGrid = ({ tabs, selectedIds, toggleTab, updateDescription, onPlayTab
 
             <div style={{ fontWeight: 500, paddingLeft: 24 }}>{tab.name}</div>
 
+            {/* 🔷 Color stack preview under name */}
+            <div style={{ marginLeft: 24, marginRight: 8, borderRadius: 4, overflow: 'hidden' }}>
+              <ColorStackPreview
+                sections={highlights}
+                duration={totalDuration}
+                height={6}
+                mode="timeline"
+                style={{ width: '100%', margin: 0, border: 'none', borderRadius: 4 }}
+              />
+            </div>
+
             <textarea
               placeholder="add description..."
               value={tab.description || ''}
               onChange={(e) => {
-                e.stopPropagation(); // ✅ don’t trigger play
+                e.stopPropagation();
                 updateDescription(tab.id, e.target.value);
               }}
               rows={2}
