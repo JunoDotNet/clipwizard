@@ -8,6 +8,7 @@ import TranscriptList from '../components/TranscriptList';
 import { insertHighlightSection } from '../utils/highlightUtils';
 import HighlightLabelManager from '../components/HighlightLabelManager';
 import WaveformPlayer from '../components/WaveformPlayer';
+import AddCustomClip from '../components/AddCustomClip';
 
 const ImportPage = () => {
   const {
@@ -20,7 +21,7 @@ const ImportPage = () => {
   const [markingStartId, setMarkingStartId] = useState(null);
   const [activeLabelId, setActiveLabelId] = useState(null);
   const [audioArray, setAudioArray] = useState(null); // New state for audio data
-
+  const [audioDuration, setAudioDuration] = useState(null);
 
   const getLabelColor = (id) =>
     highlightLabels.find(label => label.id === id)?.color || '#ffcc00';
@@ -102,7 +103,7 @@ const ImportPage = () => {
         ...seg,
         end: (typeof seg.end === 'number' && seg.end > seg.start)
           ? seg.end
-          : (arr[i + 1] ? arr[i + 1].start : (arr[i] ? arr[i].start + 3 : 0)),
+          : (arr[i + 1] ? arr[i + 1].start : (audioDuration || (arr[i] ? arr[i].start + 3 : 0))),
       }))
     : [];
 
@@ -117,54 +118,76 @@ const ImportPage = () => {
         setSelectedFile={setSelectedFile}
         setVideoSrc={setVideoSrc}
       />
-      {videoSrc && <VideoPlayer src={videoSrc} videoRef={videoRef} />}
+
+      {videoSrc && (
+        <>
+          <VideoPlayer src={videoSrc} videoRef={videoRef} />
+
+          <div style={{ marginTop: 20 }}>
+            <WaveformPlayer
+              clips={transcriptWithEnds}
+              videoRef={videoRef}
+              onAudioDuration={setAudioDuration}
+            />
+          </div>
+        </>
+      )}
 
       {transcript.length > 0 && (
         <>
-          <h3>📝 Transcript</h3>
-          <TranscriptList
-            transcript={transcript}
-            selectedIds={[]}
-            toggleId={null}
-            jumpTo={jumpTo}
-            onClickLine={handleMark}
-            highlightedSections={highlightedSections}
-          />
+          <div style={{ display: 'flex', marginTop: 20, gap: 40 }}>
+            {/* Left: Highlight Label Manager */}
+            <div style={{ flex: 1 }}>
+              <HighlightLabelManager setActiveLabelId={setActiveLabelId} />
+              <p style={{ marginTop: 6 }}>
+                {activeLabelId && markingStartId === null && (
+                  <>
+                    🖊️ Highlight mode: <strong>{highlightLabels.find(l => l.id === activeLabelId)?.name}</strong><br />
+                    Click a transcript line to start the highlight.
+                    <br />
+                    <button onClick={() => setActiveLabelId(null)} style={{ marginTop: 6 }}>
+                      ❌ Cancel Highlight Mode
+                    </button>
+                  </>
+                )}
 
-          <div style={{ marginTop: 10 }}>
-            <HighlightLabelManager setActiveLabelId={setActiveLabelId} />
-            <p style={{ marginTop: 6 }}>
-              {activeLabelId && markingStartId === null && (
-                <>
-                  🖊️ Highlight mode: <strong>{highlightLabels.find(l => l.id === activeLabelId)?.name}</strong><br />
-                  Click a transcript line to start the highlight.
-                  <br />
-                  <button onClick={() => setActiveLabelId(null)} style={{ marginTop: 6 }}>
-                    ❌ Cancel Highlight Mode
-                  </button>
-                </>
-              )}
+                {markingStartId !== null && (
+                  <>
+                    Highlight started at line <strong>{markingStartId}</strong>.<br />
+                    Now click the end line to confirm.
+                    <br />
+                    <button onClick={() => setMarkingStartId(null)} style={{ marginTop: 6 }}>
+                      ❌ Cancel Highlight
+                    </button>
+                  </>
+                )}
 
-              {markingStartId !== null && (
-                <>
-                  Highlight started at line <strong>{markingStartId}</strong>.<br />
-                  Now click the end line to confirm.
-                  <br />
-                  <button onClick={() => setMarkingStartId(null)} style={{ marginTop: 6 }}>
-                    ❌ Cancel Highlight
-                  </button>
-                </>
-              )}
+                {!activeLabelId && markingStartId === null && (
+                  'Click “Use” on a label to begin highlighting.'
+                )}
+              </p>
+            </div>
 
-              {!activeLabelId && markingStartId === null && (
-                'Click “Use” on a label to begin highlighting.'
-              )}
-            </p>
+            {/* Right: Transcript List */}
+            <div style={{ flex: 2 }}>
+              <h3>📝 Transcript</h3>
+              <TranscriptList
+                transcript={transcript}
+                selectedIds={[]}
+                toggleId={null}
+                jumpTo={jumpTo}
+                onClickLine={handleMark}
+                highlightedSections={highlightedSections}
+              />
+            </div>
           </div>
 
-          {/* Add WaveformPlayer below transcript/highlight UI */}
-          <WaveformPlayer clips={transcriptWithEnds} videoRef={videoRef} />
-          </>
+          <AddCustomClip
+            onAddClip={(newLine) =>
+              setTranscript((prev) => [...prev, newLine].sort((a, b) => a.start - b.start))
+            }
+          />
+        </>
       )}
     </div>
   );
