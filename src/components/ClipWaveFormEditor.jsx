@@ -73,9 +73,10 @@ const ClipWaveformEditor = ({ clips, videoRef, updateClipOffset, selectedClip })
       clips.forEach((clip) => {
         const startTime = clip.start + (clip.startOffset || 0);
         const endTime = clip.end + (clip.endOffset || 0);
+        // Use highlight color if present, otherwise light grey
         const regionColor = clip.__highlightColor
           ? clip.__highlightColor + '55'
-          : 'rgba(255, 204, 0, 0.3)';
+          : 'rgba(200,200,200,0.5)';
 
         const region = regions.addRegion({
           id: `clip-${clip.id}`,

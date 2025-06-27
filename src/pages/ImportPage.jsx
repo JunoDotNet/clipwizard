@@ -7,6 +7,7 @@ import useTranscription from '../hooks/useTranscription';
 import TranscriptList from '../components/TranscriptList';
 import { insertHighlightSection } from '../utils/highlightUtils';
 import HighlightLabelManager from '../components/HighlightLabelManager';
+import WaveformPlayer from '../components/WaveformPlayer';
 
 const ImportPage = () => {
   const {
@@ -18,6 +19,8 @@ const ImportPage = () => {
   const videoRef = useRef();
   const [markingStartId, setMarkingStartId] = useState(null);
   const [activeLabelId, setActiveLabelId] = useState(null);
+  const [audioArray, setAudioArray] = useState(null); // New state for audio data
+
 
   const getLabelColor = (id) =>
     highlightLabels.find(label => label.id === id)?.color || '#ffcc00';
@@ -29,11 +32,17 @@ const ImportPage = () => {
         return parts.length === 3 ? (+parts[0]) * 3600 + (+parts[1]) * 60 + (+parts[2]) : 0;
       };
 
-      const parsed = (transcription.transcription || []).map((seg, i) => ({
+      // First, parse all segments with start
+      const raw = (transcription.transcription || []).map((seg, i) => ({
         ...seg,
         id: i,
         start: parse(seg.timestamps?.from),
-        end: parse(seg.timestamps?.to),
+      }));
+
+      // Then, add end to each segment
+      const parsed = raw.map((seg, i, arr) => ({
+        ...seg,
+        end: arr[i + 1] ? arr[i + 1].start : (seg.start + 3), // fallback: +3s for last
       }));
 
       setTranscript(parsed);
@@ -86,6 +95,16 @@ const ImportPage = () => {
       setActiveLabelId(null); // exit highlight mode
     }
   };
+
+  // Compute transcriptWithEnds so each segment has a start and end
+  let transcriptWithEnds = Array.isArray(transcript)
+    ? transcript.map((seg, i, arr) => ({
+        ...seg,
+        end: (typeof seg.end === 'number' && seg.end > seg.start)
+          ? seg.end
+          : (arr[i + 1] ? arr[i + 1].start : (arr[i] ? arr[i].start + 3 : 0)),
+      }))
+    : [];
 
   return (
     <div style={{ padding: 20 }}>
@@ -142,7 +161,10 @@ const ImportPage = () => {
               )}
             </p>
           </div>
-        </>
+
+          {/* Add WaveformPlayer below transcript/highlight UI */}
+          <WaveformPlayer clips={transcriptWithEnds} videoRef={videoRef} />
+          </>
       )}
     </div>
   );

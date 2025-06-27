@@ -5,7 +5,6 @@ import LayoutFrame from './components/LayoutFrame';
 import ImportPage from './pages/ImportPage';
 import EditPage from './pages/EditPage';
 import ExportPage from './pages/ExportPage';
-import TestPage from './pages/testPage';
 
 const App = () => (
   <AppProvider>
