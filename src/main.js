@@ -146,6 +146,33 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('save-xml-to-path', async (event, filePath, xmlContent) => {
+    const fs = require('fs');
+    try {
+      fs.writeFileSync(filePath, xmlContent, 'utf8');
+      return filePath;
+    } catch (err) {
+      console.error('❌ Failed to save XML to path:', err);
+      throw err;
+    }
+  });
+
+
+  ipcMain.handle('select-export-folder', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Select Export Folder',
+      properties: ['openDirectory'],
+    });
+
+    if (canceled || !filePaths.length) return null;
+    return filePaths[0];
+  });
+
+  ipcMain.handle('save-transcript-file', async (_, path, content) => {
+    const fs = require('fs');
+    fs.writeFileSync(path, content, 'utf8');
+    return path;
+  });
 
   ipcMain.handle('export-clips', async (event, buffer, fileName, rawClips) => {
     try {

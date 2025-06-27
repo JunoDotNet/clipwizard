@@ -27,8 +27,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getVideoResolution: (videoPath) => ipcRenderer.invoke('get-video-resolution', videoPath),
 
+  selectExportFolder: () =>
+  ipcRenderer.invoke('select-export-folder'),
+
+  saveTranscriptFile: (path, content) =>
+  ipcRenderer.invoke('save-transcript-file', path, content),
+
   exportSingleCut: (buffer, fileName, clips, outputPath) =>
   ipcRenderer.invoke('export-single-cut', buffer, fileName, clips, outputPath),
+
+  saveXmlToPath: (filePath, xmlContent) =>
+  ipcRenderer.invoke('save-xml-to-path', filePath, xmlContent),
 
 
   saveXmlFile: (defaultFileName, xmlContent) =>

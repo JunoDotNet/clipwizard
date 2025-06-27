@@ -11,6 +11,7 @@ const ProjectControls = ({
   const {
     setHighlightLabels,
     setHighlightedSections,
+    setWavPath, // ✅ Use the one from context
   } = useAppContext();
 
   const handleLoad = async () => {
@@ -35,6 +36,14 @@ const ProjectControls = ({
     const blob = new Blob([buffer], { type: 'video/mp4' });
     const videoURL = URL.createObjectURL(blob);
     setVideoSrc(videoURL);
+
+    // ✅ Use saved path or generate new wav URL
+    if (data.wavPath) {
+      setWavPath(data.wavPath);
+    } else {
+      const wav = await window.electronAPI.getWavBlobUrl(data.videoFilePath);
+      setWavPath(wav);
+    }
   };
 
   return (

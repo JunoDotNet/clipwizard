@@ -1,6 +1,6 @@
 import exportToPremiereXml from './exportToPremiereXml';
 
-export async function exportAllTabsAsXml(clipTabs, videoFilePath, resolution) {
+export async function exportAllTabsAsXml(clipTabs, videoFilePath, exportPath, resolution) {
   for (const tab of clipTabs) {
     if (!tab.clips?.length) continue;
 
@@ -11,10 +11,9 @@ export async function exportAllTabsAsXml(clipTabs, videoFilePath, resolution) {
       resolution
     );
 
-    const blob = new Blob([xml], { type: 'application/xml' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${tab.name || 'Cut'}.xml`;
-    a.click();
+    const safeName = tab.name?.replace(/\s+/g, '_') || 'Cut';
+    const xmlPath = `${exportPath}/${safeName}.xml`;
+
+    await window.electronAPI.saveXmlToPath(xmlPath, xml);
   }
 }

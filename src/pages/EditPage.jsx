@@ -23,6 +23,7 @@ const EditPage = () => {
     setActiveTabId,
     highlightedSections,
     highlightLabels,
+    wavPath,
   } = useAppContext();
 
   const [selectedClipId, setSelectedClipId] = useState(null);
@@ -206,6 +207,7 @@ const EditPage = () => {
             videoRef={videoRef}
             updateClipOffset={updateClipOffset}
             selectedClip={selectedClip}
+            wavUrl={wavPath}
           />
 
         </div>

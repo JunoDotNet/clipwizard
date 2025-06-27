@@ -22,6 +22,8 @@ const ImportPage = () => {
   const [activeLabelId, setActiveLabelId] = useState(null);
   const [audioArray, setAudioArray] = useState(null); // New state for audio data
   const [audioDuration, setAudioDuration] = useState(null);
+  const [wavUrl, setWavUrl] = useState(null);
+
 
   const getLabelColor = (id) =>
     highlightLabels.find(label => label.id === id)?.color || '#ffcc00';
@@ -117,6 +119,7 @@ const ImportPage = () => {
         setActiveTabId={setActiveTabId}
         setSelectedFile={setSelectedFile}
         setVideoSrc={setVideoSrc}
+        setWavUrl={setWavUrl}
       />
 
       {videoSrc && (

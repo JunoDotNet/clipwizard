@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 const LayoutFrame = ({ children }) => {
   const {
     selectedFile, transcript, clipTabs, activeTabId,
-    highlightLabels, highlightedSections
+    highlightLabels, highlightedSections, wavPath,
   } = useAppContext(); // add these two
 
 
@@ -19,6 +19,7 @@ const LayoutFrame = ({ children }) => {
       activeTabId,
       highlightLabels,
       highlightedSections,
+      wavPath,
     };
     const result = await window.electronAPI.saveProject(project);
     if (result) alert(`✅ Project saved to:\n${result}`);
