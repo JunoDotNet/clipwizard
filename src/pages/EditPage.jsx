@@ -202,7 +202,7 @@ const EditPage = () => {
           }}
         >
           <ClipWaveformEditor
-            clips={activeTab?.clips || []}
+            clips={activeTab?.clips && activeTab.clips.length > 0 ? activeTab.clips : transcript}
             videoRef={videoRef}
             updateClipOffset={updateClipOffset}
             selectedClip={selectedClip}
