@@ -31,6 +31,8 @@ const EditPage = () => {
   const [activeDragLine, setActiveDragLine] = useState(null);
   const { playClips } = useClipPlayback(videoRef);
   const [pendingSelection, setPendingSelection] = useState(null);
+  const [timeLimit, setTimeLimit] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleDeleteClip = (clipId) => {
     updateActiveTabClips(clips => clips.filter(c => c.id !== clipId));
@@ -269,6 +271,9 @@ const EditPage = () => {
                 onSelectClip={handleSelectClip}
                 selectedClipId={selectedClipId}
                 onDeleteClip={handleDeleteClip}
+                tabName={activeTab?.name}
+                timeLimit={timeLimit}             
+                setTimeLimit={setTimeLimit}       
               />
             </div>
           </div>
