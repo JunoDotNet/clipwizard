@@ -7,6 +7,8 @@ const ProjectControls = ({
   setActiveTabId,
   setSelectedFile,
   setVideoSrc,
+  setWavUrl,
+  onLoadComplete,
 }) => {
   const {
     setHighlightLabels,
@@ -44,7 +46,12 @@ const ProjectControls = ({
       const wav = await window.electronAPI.getWavBlobUrl(data.videoFilePath);
       setWavPath(wav);
     }
+
+    
+  if (onLoadComplete) onLoadComplete();
   };
+
+
 
   return (
     <div style={{ marginTop: 10 }}>

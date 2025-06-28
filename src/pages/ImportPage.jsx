@@ -1,7 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import FilePicker from '../components/FilePicker';
-import ProjectControls from '../components/ProjectControls';
 import VideoPlayer from '../components/VideoPlayer';
 import useTranscription from '../hooks/useTranscription';
 import TranscriptList from '../components/TranscriptList';
@@ -9,11 +7,13 @@ import { insertHighlightSection } from '../utils/highlightUtils';
 import HighlightLabelManager from '../components/HighlightLabelManager';
 import WaveformPlayer from '../components/WaveformPlayer';
 import AddCustomClip from '../components/AddCustomClip';
+import SplashScreen from '../components/SplashScreen';
 
 const ImportPage = () => {
   const {
     setVideoSrc, setTranscript, setClipTabs, setSelectedFile, setActiveTabId,
-    videoSrc, transcript, highlightedSections, setHighlightedSections, highlightLabels
+    videoSrc, transcript, highlightedSections, setHighlightedSections, highlightLabels,
+    showSplash, setShowSplash // <-- use from context
   } = useAppContext();
 
   const { transcribe, transcription } = useTranscription();
@@ -23,7 +23,15 @@ const ImportPage = () => {
   const [audioArray, setAudioArray] = useState(null); // New state for audio data
   const [audioDuration, setAudioDuration] = useState(null);
   const [wavUrl, setWavUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  const handleFileSelected = (url, file) => {
+    setVideoSrc(url);
+    setSelectedFile(file);
+    setLoading(true);
+    transcribe(file);
+    // setShowSplash(false); // Moved to after transcript loads
+  };
 
   const getLabelColor = (id) =>
     highlightLabels.find(label => label.id === id)?.color || '#ffcc00';
@@ -49,14 +57,10 @@ const ImportPage = () => {
       }));
 
       setTranscript(parsed);
+      setShowSplash(false); // Hide splash only after transcript is ready
+      setLoading(false);
     }
   }, [transcription]);
-
-  const handleFileSelected = (url, file) => {
-    setVideoSrc(url);
-    setSelectedFile(file);
-    transcribe(file);
-  };
 
   const jumpTo = (time) => {
     if (videoRef.current && Number.isFinite(time)) {
@@ -109,18 +113,15 @@ const ImportPage = () => {
       }))
     : [];
 
+  // Handler to hide splash when a project is loaded from ProjectControls
+  const handleProjectLoaded = () => {
+    setShowSplash(false);
+    setLoading(false);
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h2>📥 Import Project</h2>
-      <FilePicker onFileSelected={handleFileSelected} />
-      <ProjectControls
-        setTranscript={setTranscript}
-        setClipTabs={setClipTabs}
-        setActiveTabId={setActiveTabId}
-        setSelectedFile={setSelectedFile}
-        setVideoSrc={setVideoSrc}
-        setWavUrl={setWavUrl}
-      />
 
       {videoSrc && (
         <>
@@ -191,6 +192,19 @@ const ImportPage = () => {
             }
           />
         </>
+      )}
+      {showSplash && (
+        <SplashScreen
+          onFileSelected={handleFileSelected}
+          loading={loading}
+          setTranscript={setTranscript}
+          setClipTabs={setClipTabs}
+          setActiveTabId={setActiveTabId}
+          setSelectedFile={setSelectedFile}
+          setVideoSrc={setVideoSrc}
+          setWavUrl={setWavUrl}
+          onProjectLoaded={handleProjectLoaded}
+        />
       )}
     </div>
   );

@@ -13,6 +13,7 @@ export const AppProvider = ({ children }) => {
     { id: 'label-1', name: 'Intro', color: '#ffcc00' },
   ]);
   const [wavPath, setWavPath] = useState(null); // ✅ NEW
+  const [showSplash, setShowSplash] = useState(true); // <-- Add this
 
   return (
     <AppContext.Provider
@@ -25,6 +26,7 @@ export const AppProvider = ({ children }) => {
         highlightedSections, setHighlightedSections,
         highlightLabels, setHighlightLabels,
         wavPath, setWavPath, // ✅ NEW
+        showSplash, setShowSplash, // <-- Add this
       }}
     >
       {children}
