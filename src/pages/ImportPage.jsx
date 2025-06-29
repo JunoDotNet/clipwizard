@@ -119,6 +119,8 @@ const ImportPage = () => {
     setLoading(false);
   };
 
+  const { splashMode } = useAppContext();
+
   return (
     <div style={{ padding: 20 }}>
       <h2>📥 Import Project</h2>
@@ -204,6 +206,7 @@ const ImportPage = () => {
           setVideoSrc={setVideoSrc}
           setWavUrl={setWavUrl}
           onProjectLoaded={handleProjectLoaded}
+          splashMode={splashMode}
         />
       )}
     </div>

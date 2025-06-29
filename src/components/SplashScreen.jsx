@@ -28,37 +28,47 @@ const AnimatedLoading = () => {
 const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript, setClipTabs, setActiveTabId, setSelectedFile, setVideoSrc, setWavUrl, splashMode }) => {
   const showClose = splashMode === 'manual';
   const { setShowSplash } = require('../context/AppContext').useAppContext();
+  // Handler for clicking outside the splash box
+  const handleOverlayClick = () => {
+    if (showClose) setShowSplash(false);
+  };
   return (
     <>
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 9998,
-        background: 'rgba(255,255,255,0.01)', // nearly transparent, but blocks pointer events
-        pointerEvents: 'auto',
-      }} />
-      <div style={{
-        width: 400,
-        height: 400,
-        background: 'white',
-        color: '#222',
-        borderRadius: 24,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'sans-serif',
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 9999,
-        overflow: 'hidden',
-      }}>
+      <div
+        onClick={handleOverlayClick}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 9998,
+          background: 'rgba(255,255,255,0.01)',
+          pointerEvents: 'auto',
+        }}
+      />
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 400,
+          height: 400,
+          background: 'white',
+          color: '#222',
+          borderRadius: 24,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'sans-serif',
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 9999,
+          overflow: 'hidden',
+        }}
+      >
         <h1 style={{ fontSize: 48, marginBottom: 32 }}>🎬 ClipWizard!</h1>
 
         <FilePicker onFileSelected={onFileSelected} />
@@ -74,25 +84,6 @@ const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript,
             setWavUrl={setWavUrl}
           />
         </div>
-
-        {showClose && (
-          <button
-            style={{
-              position: 'absolute',
-              top: 12,
-              right: 18,
-              fontSize: 28,
-              background: 'none',
-              border: 'none',
-              color: '#888',
-              cursor: 'pointer',
-            }}
-            onClick={() => setShowSplash(false)}
-            title="Close"
-          >
-            ×
-          </button>
-        )}
 
         {loading && <AnimatedLoading />}
       </div>
