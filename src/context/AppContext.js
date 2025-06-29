@@ -14,6 +14,7 @@ export const AppProvider = ({ children }) => {
   ]);
   const [wavPath, setWavPath] = useState(null); // ✅ NEW
   const [showSplash, setShowSplash] = useState(true); // <-- Add this
+  const [splashMode, setSplashMode] = useState('initial'); // <-- Add this
 
   return (
     <AppContext.Provider
@@ -27,6 +28,7 @@ export const AppProvider = ({ children }) => {
         highlightLabels, setHighlightLabels,
         wavPath, setWavPath, // ✅ NEW
         showSplash, setShowSplash, // <-- Add this
+        splashMode, setSplashMode, // <-- Add this
       }}
     >
       {children}

@@ -1,12 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import SplashScreen from '../components/SplashScreen';
 
 const LayoutFrame = ({ children }) => {
   const {
+    showSplash, setShowSplash, splashMode, setSplashMode,
     selectedFile, transcript, clipTabs, activeTabId,
-    highlightLabels, highlightedSections, wavPath, setShowSplash
-  } = useAppContext(); // add these two
+    highlightLabels, highlightedSections, wavPath
+  } = useAppContext();
 
 
   const handleSave = async () => {
@@ -44,13 +46,19 @@ const LayoutFrame = ({ children }) => {
 
   return (
     <div>
+      {showSplash && (
+        <SplashScreen
+          splashMode={splashMode}
+          // The rest of the props can be passed from context or page as needed
+        />
+      )}
       <header style={baseStyle}>
         <NavLink to="/" style={navLinkStyle}>📥 Import</NavLink>
         <NavLink to="/edit" style={navLinkStyle}>✂️ Edit</NavLink>
         <NavLink to="/export" style={navLinkStyle}>📤 Export</NavLink>
         <div style={{ flex: 1 }} />
         <button onClick={handleSave}>💾 Save Project</button>
-        <button onClick={() => setShowSplash(true)} title="Show Splash Screen" style={{ marginLeft: 8, fontSize: 20 }}>🧙</button>
+        <button onClick={() => { setSplashMode('manual'); setShowSplash(true); }} title="Show Splash Screen" style={{ marginLeft: 8, fontSize: 20 }}>🧙</button>
       </header>
       <main>{children}</main>
     </div>

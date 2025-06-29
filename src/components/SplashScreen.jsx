@@ -25,7 +25,9 @@ const AnimatedLoading = () => {
   );
 };
 
-const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript, setClipTabs, setActiveTabId, setSelectedFile, setVideoSrc, setWavUrl }) => {
+const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript, setClipTabs, setActiveTabId, setSelectedFile, setVideoSrc, setWavUrl, splashMode }) => {
+  const showClose = splashMode === 'manual';
+  const { setShowSplash } = require('../context/AppContext').useAppContext();
   return (
     <>
       <div style={{
@@ -72,6 +74,25 @@ const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript,
             setWavUrl={setWavUrl}
           />
         </div>
+
+        {showClose && (
+          <button
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 18,
+              fontSize: 28,
+              background: 'none',
+              border: 'none',
+              color: '#888',
+              cursor: 'pointer',
+            }}
+            onClick={() => setShowSplash(false)}
+            title="Close"
+          >
+            ×
+          </button>
+        )}
 
         {loading && <AnimatedLoading />}
       </div>
