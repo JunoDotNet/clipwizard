@@ -39,7 +39,20 @@
 
 ---
 
+## 🛠️ Roadmap
+ClipWizard is growing into a full end-to-end platform for short-form content creation. Here's what's planned:
+
+Phase	Feature	Scope Description
+✅ Now	Transcript + Clip Tabs + Export	Import video, transcribe with Whisper, organize clips via transcript, export XML.
+🟡 Next	Cropping UI + Vertical Export	Add per-clip crop boxes and export vertical clips using ffmpeg crop + scale.
+🔜 Then	Caption Styling and Burn-In	Allow users to style captions and burn them directly into vertical clips.
+🔁 Later	Crop Animation (Keyframing)	Add a timeline UI to animate crop regions (pan/zoom effects).
+🧠 Future	Auto-Crop to Faces / Pan-Zoom	Use computer vision to auto-frame faces and generate smooth crop animations.
+
+---
+
 ## 🗂 Folder Structure
+
 src/
 ├── components/ # UI elements (video player, tab manager, etc.)
 ├── pages/ # ImportPage, EditPage, ExportPage
@@ -48,13 +61,17 @@ src/
 ├── utils/ # Highlight merging, export helpers
 ├── whisper/ # whisper.exe, ffmpeg.exe, model binaries
 
+yaml
+Copy
+Edit
+
 ---
 
 ## 🚀 Getting Started
-
-### 1. Clone and Install
 
 ```bash
 git clone https://github.com/yourusername/clipwizard.git
 cd clipwizard
 npm install
+
+
