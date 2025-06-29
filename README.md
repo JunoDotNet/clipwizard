@@ -55,21 +55,6 @@ ClipWizard is growing into a full end-to-end platform for short-form content cre
 
 ---
 
-## 🗂 Folder Structure
-
-src/
-├── components/ # UI elements (video player, tab manager, etc.)
-├── pages/ # ImportPage, EditPage, ExportPage
-├── context/ # Global app state (AppContext)
-├── hooks/ # Custom logic (transcription, clip playback)
-├── utils/ # Highlight merging, export helpers
-├── whisper/ # whisper.exe, ffmpeg.exe, model binaries
-
-yaml
-Copy
-Edit
-
----
 
 ## 🚀 Getting Started
 
