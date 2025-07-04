@@ -1,19 +1,19 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
 
-const ProjectControls = ({
-  setTranscript,
-  setClipTabs,
-  setActiveTabId,
-  setSelectedFile,
-  setVideoSrc,
-  setWavUrl,
-  onLoadComplete,
-}) => {
+const ProjectControls = ({ onLoadComplete }) => {
   const {
+    setTranscript,
+    setClipTabs,
+    setActiveTabId,
+    setSelectedFile,
+    setVideoSrc,
+    setWavPath,
     setHighlightLabels,
     setHighlightedSections,
-    setWavPath, // ✅ Use the one from context
+    setCropQueue,
+    setSharedCropLayers,
+    setCropOverrides
   } = useAppContext();
 
   const handleLoad = async () => {
@@ -34,12 +34,15 @@ const ProjectControls = ({
     setHighlightLabels(data.highlightLabels || []);
     setHighlightedSections(data.highlightedSections || []);
 
+    setCropQueue(data.cropQueue || []);
+    setSharedCropLayers(data.sharedCropLayers || []);
+    setCropOverrides(data.cropOverrides || {});
+
     const buffer = await window.electronAPI.readFileAsBlob(data.videoFilePath);
     const blob = new Blob([buffer], { type: 'video/mp4' });
     const videoURL = URL.createObjectURL(blob);
     setVideoSrc(videoURL);
 
-    // ✅ Use saved path or generate new wav URL
     if (data.wavPath) {
       setWavPath(data.wavPath);
     } else {
@@ -47,11 +50,8 @@ const ProjectControls = ({
       setWavPath(wav);
     }
 
-    
-  if (onLoadComplete) onLoadComplete();
+    if (onLoadComplete) onLoadComplete();
   };
-
-
 
   return (
     <div style={{ marginTop: 10 }}>

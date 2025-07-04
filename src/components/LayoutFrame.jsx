@@ -7,7 +7,8 @@ const LayoutFrame = ({ children }) => {
   const {
     showSplash, setShowSplash, splashMode, setSplashMode,
     selectedFile, transcript, clipTabs, activeTabId,
-    highlightLabels, highlightedSections, wavPath
+    highlightLabels, highlightedSections, wavPath,
+    cropQueue, sharedCropLayers, cropOverrides,
   } = useAppContext();
 
 
@@ -22,6 +23,9 @@ const LayoutFrame = ({ children }) => {
       highlightLabels,
       highlightedSections,
       wavPath,
+      cropQueue,
+      sharedCropLayers,
+      cropOverrides,
     };
     const result = await window.electronAPI.saveProject(project);
     if (result) alert(`✅ Project saved to:\n${result}`);
