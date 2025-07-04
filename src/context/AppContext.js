@@ -12,9 +12,12 @@ export const AppProvider = ({ children }) => {
   const [highlightLabels, setHighlightLabels] = useState([
     { id: 'label-1', name: 'Intro', color: '#ffcc00' },
   ]);
-  const [wavPath, setWavPath] = useState(null); // ✅ NEW
-  const [showSplash, setShowSplash] = useState(true); // <-- Add this
-  const [splashMode, setSplashMode] = useState('initial'); // <-- Add this
+  const [wavPath, setWavPath] = useState(null); 
+  const [showSplash, setShowSplash] = useState(true); 
+  const [splashMode, setSplashMode] = useState('initial'); 
+
+  const [cropQueue, setCropQueue] = useState([]);
+
 
   return (
     <AppContext.Provider
@@ -29,6 +32,7 @@ export const AppProvider = ({ children }) => {
         wavPath, setWavPath, // ✅ NEW
         showSplash, setShowSplash, // <-- Add this
         splashMode, setSplashMode, // <-- Add this
+        cropQueue, setCropQueue,
       }}
     >
       {children}
