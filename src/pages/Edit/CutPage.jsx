@@ -1,18 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useAppContext } from '../context/AppContext';
-import VideoPlayer from '../components/VideoPlayer';
-import ClipTabs from '../components/ClipTabs';
-import AITranscriptImporter from '../components/AITranscriptImporter';
-import useClipPlayback from '../hooks/useClipPlayback';
+import { useAppContext } from '../../context/AppContext';
+import VideoPlayer from '../../components/VideoPlayer';
+import ClipTabs from '../../components/ClipTabs';
+import AITranscriptImporter from '../../components/AITranscriptImporter';
+import useClipPlayback from '../../hooks/useClipPlayback';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
-import TranscriptDragSource from '../components/TranscriptDragSource';
-import DropZone from '../components/DropZone';
+import TranscriptDragSource from '../../components/TranscriptDragSource';
+import DropZone from '../../components/DropZone';
 import { arrayMove } from '@dnd-kit/sortable'; 
 import { v4 as uuidv4 } from 'uuid';
-import ClipEditor from '../components/ClipEditor';
-import ClipWaveformEditor from '../components/ClipWaveFormEditor';
+import ClipWaveformEditor from '../../components/ClipWaveFormEditor';
 
-const EditPage = () => {
+const CutPage = () => {
   const videoRef = useRef();
   const {
     videoSrc,
@@ -33,7 +32,6 @@ const EditPage = () => {
   const { playClips } = useClipPlayback(videoRef);
   const [pendingSelection, setPendingSelection] = useState(null);
   const [timeLimit, setTimeLimit] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
 
   const handleDeleteClip = (clipId) => {
     updateActiveTabClips(clips => clips.filter(c => c.id !== clipId));
@@ -167,7 +165,7 @@ const EditPage = () => {
 
   return (
     <>
-      <h2>✂️ Edit Clips</h2>
+      <h2>✂️ Cut Page</h2>
       <div
         style={{
           display: 'flex',
@@ -209,10 +207,8 @@ const EditPage = () => {
             selectedClip={selectedClip}
             wavUrl={wavPath}
           />
-
         </div>
       </div>
-
 
       <DndContext
         onDragStart={({ active }) => setActiveDragLine(active?.data?.current?.line || null)}
@@ -274,8 +270,8 @@ const EditPage = () => {
                 selectedClipId={selectedClipId}
                 onDeleteClip={handleDeleteClip}
                 tabName={activeTab?.name}
-                timeLimit={timeLimit}             
-                setTimeLimit={setTimeLimit}       
+                timeLimit={timeLimit}
+                setTimeLimit={setTimeLimit}
               />
             </div>
           </div>
@@ -312,4 +308,4 @@ const EditPage = () => {
   );
 };
 
-export default EditPage;
+export default CutPage;
