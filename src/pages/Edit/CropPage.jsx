@@ -8,7 +8,8 @@ const CropPage = () => {
   const {
     selectedFile, videoSrc, clipTabs, cropQueue, setCropQueue,
     sharedCropLayers, setSharedCropLayers,
-    cropOverrides, setCropOverrides
+    cropOverrides, setCropOverrides,
+    sceneSegments, setSceneSegments // <-- now from context
   } = useAppContext();
 
   const [videoSize, setVideoSize] = useState({ width: 1920, height: 1080 });
@@ -21,6 +22,7 @@ const CropPage = () => {
   const [queueIndex, setQueueIndex] = useState(0);
   const currentItem = cropQueue[queueIndex];
   const [queueSource, setQueueSource] = useState('allCuts');
+
 
   const displayScale = 0.5;
   const displayVideoSize = {
@@ -65,47 +67,72 @@ const CropPage = () => {
     return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
   }, [videoRef]);
 
-  // Build queue
   useEffect(() => {
+    if (!queueSource) return;
+
+    // 🧠 Run Scene Detection
+    if (queueSource === 'sceneDetect') {
+        if (sceneSegments.length > 0) {
+            const queue = sceneSegments.map((scene, index) => ({
+            id: `scene-${index}`,
+            start: scene.start,
+            end: scene.end,
+            label: scene.label || `Scene ${index + 1}`,
+            sourceType: 'scene',
+            }));
+            setCropQueue(queue);
+            setQueueIndex(0);
+            console.log('🎬 Loaded existing scenes:', queue);
+        } else {
+            setCropQueue([]);
+            setQueueIndex(0);
+            console.warn('⚠️ Scene detection not run yet.');
+        }
+        return;
+        }
+
+
+    // 🧩 Default queue logic
     if (!clipTabs || clipTabs.length === 0) return;
 
     let queue = [];
 
     if (queueSource === 'allCuts') {
-      queue = clipTabs.flatMap(tab =>
+        queue = clipTabs.flatMap(tab =>
         tab.clips.map((clip, index) => ({
-          id: `${tab.id}-clip-${index}`,
-          start: clip.start,
-          end: clip.end,
-          label: `${tab.name} - Clip ${index + 1}`,
-          sourceTabId: tab.id,
+            id: `${tab.id}-clip-${index}`,
+            start: clip.start,
+            end: clip.end,
+            label: `${tab.name} - Clip ${index + 1}`,
+            sourceTabId: tab.id,
         }))
-      );
+        );
     } else if (queueSource === 'fullVideo') {
-      queue = [{
+        queue = [{
         id: 'full-video',
         start: 0,
         end: videoDuration || 0,
         label: 'Full Video',
         sourceTabId: null,
-      }];
+        }];
     } else {
-      const tab = clipTabs.find(t => t.id === queueSource);
-      if (tab) {
+        const tab = clipTabs.find(t => t.id === queueSource);
+        if (tab) {
         queue = tab.clips.map((clip, index) => ({
-          id: `${tab.id}-clip-${index}`,
-          start: clip.start,
-          end: clip.end,
-          label: `${tab.name} - Clip ${index + 1}`,
-          sourceTabId: tab.id,
+            id: `${tab.id}-clip-${index}`,
+            start: clip.start,
+            end: clip.end,
+            label: `${tab.name} - Clip ${index + 1}`,
+            sourceTabId: tab.id,
         }));
-      }
+        }
     }
 
     setCropQueue(queue);
     setQueueIndex(0);
     console.log('📦 New crop queue:', queue);
-  }, [clipTabs, queueSource, setCropQueue, videoDuration]);
+    }, [clipTabs, queueSource, setCropQueue, selectedFile, videoDuration]);
+
 
   // Track if layers update is from user or programmatic (clip switch)
   const programmaticUpdateRef = useRef(false);
@@ -177,17 +204,47 @@ const CropPage = () => {
           <div style={{ marginBottom: 16 }}>
             <label htmlFor="source-select" style={{ marginRight: 8 }}>Crop Source:</label>
             <select
-              id="source-select"
-              value={queueSource}
-              onChange={(e) => setQueueSource(e.target.value)}
+                id="source-select"
+                value={queueSource}
+                onChange={(e) => setQueueSource(e.target.value)}
             >
-              <option value="allCuts">All Cut Clips</option>
-              {clipTabs.map(tab => (
+                <option value="allCuts">All Cut Clips</option>
+                {clipTabs.map(tab => (
                 <option key={tab.id} value={tab.id}>Only {tab.name}</option>
-              ))}
-              <option value="fullVideo">Full Video</option>
+                ))}
+                <option value="fullVideo">Full Video</option>
+                <option value="sceneDetect">Scene Detection</option>
             </select>
-          </div>
+
+            {queueSource === 'sceneDetect' && (
+            <button
+                style={{ marginLeft: 12 }}
+                onClick={async () => {
+                if (!selectedFile?.path || !window.electronAPI) return;
+                try {
+                    const scenes = await window.electronAPI.detectScenes(selectedFile.path);
+                    const sceneQueue = scenes.map((scene, index) => ({
+                    id: `scene-${index}`,
+                    start: scene.start,
+                    end: scene.end,
+                    label: scene.label || `Scene ${index + 1}`,
+                    sourceType: 'scene',
+                    }));
+                    setSceneSegments(sceneQueue); // 🧠 store scenes in memory
+                    setCropQueue(sceneQueue);     // ✅ use them as queue
+                    setQueueIndex(0);
+                    console.log('🎬 Ran scene detection:', sceneQueue);
+                } catch (err) {
+                    console.error('❌ Scene detection failed:', err);
+                }
+                }}
+            >
+                🧠 Run Scene Detection
+            </button>
+            )}
+
+            </div>
+
 
           <div style={{ display: 'flex', gap: 40 }}>
             <VideoCanvas

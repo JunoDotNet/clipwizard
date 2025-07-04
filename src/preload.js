@@ -49,5 +49,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return URL.createObjectURL(blob);
   }),
 
+  detectScenes: (videoPath) => ipcRenderer.invoke('detect-scenes', videoPath),
+
+
 
 });

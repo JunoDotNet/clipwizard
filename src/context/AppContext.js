@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
@@ -19,8 +19,27 @@ export const AppProvider = ({ children }) => {
   const [cropQueue, setCropQueue] = useState([]);
   const [sharedCropLayers, setSharedCropLayers] = useState([]);
   const [cropOverrides, setCropOverrides] = useState({});
+  // Load sceneSegments from localStorage if available
+  const [sceneSegments, setSceneSegmentsState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sceneSegments');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
+  // Save sceneSegments to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('sceneSegments', JSON.stringify(sceneSegments));
+    } catch {}
+  }, [sceneSegments]);
 
+  // Provide a setter that updates state
+  const setSceneSegments = (segments) => {
+    setSceneSegmentsState(segments);
+  };
 
   return (
     <AppContext.Provider
@@ -38,6 +57,7 @@ export const AppProvider = ({ children }) => {
         cropQueue, setCropQueue,
         sharedCropLayers, setSharedCropLayers,
         cropOverrides, setCropOverrides,
+        sceneSegments, setSceneSegments,
       }}
     >
       {children}

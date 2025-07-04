@@ -48,11 +48,20 @@ const LayoutFrame = ({ children }) => {
     fontSize: 15,
   });
 
+  // Add a handler for file selection to fix the error
+  const handleFileSelected = (file, meta) => {
+    // Example: just log and close splash, or set file in context if needed
+    console.log('File selected:', file, meta);
+    setShowSplash(false);
+    // You can add more logic here to update context if needed
+  };
+
   return (
     <div>
       {showSplash && (
         <SplashScreen
           splashMode={splashMode}
+          onFileSelected={handleFileSelected}
           // The rest of the props can be passed from context or page as needed
         />
       )}

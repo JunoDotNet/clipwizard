@@ -303,7 +303,55 @@ app.whenReady().then(() => {
     });
   });
 
+  const { spawn } = require('child_process');
 
+  ipcMain.handle('detect-scenes', async (event, videoPath) => {
+    return new Promise((resolve, reject) => {
+      const args = [
+        '-i', videoPath,
+        'detect-threshold',
+        'list-scenes',
+        '--no-output-file',
+      ];
+
+      const proc = spawn('python', ['-m', 'scenedetect', ...args]);
+
+      let output = '';
+      proc.stdout.on('data', data => output += data.toString());
+      proc.stderr.on('data', data => console.warn('[SceneDetect]', data.toString()));
+
+      proc.on('close', () => {
+        console.log('SceneDetect output:', output); // <-- log full output for debugging
+        // Parse table rows with pipes for scene start/end times
+        const sceneRegex = /^\s*\|\s*\d+\s*\|\s*\d+\s*\|\s*([\d:.]+)\s*\|\s*\d+\s*\|\s*([\d:.]+)\s*\|/gm;
+        const scenes = [];
+        let match;
+        let idx = 0;
+        while ((match = sceneRegex.exec(output)) !== null) {
+          const [ , start, end ] = match;
+          scenes.push({
+            id: `scene-${idx}`,
+            start: timeToSeconds(start),
+            end: timeToSeconds(end),
+            label: `Scene ${idx + 1}`,
+            sourceType: 'scene',
+          });
+          idx++;
+        }
+        resolve(scenes);
+      });
+
+      proc.on('error', err => {
+        console.error('❌ Scene detection failed:', err);
+        reject(err);
+      });
+    });
+  });
+
+  function timeToSeconds(timecode) {
+    const [hh, mm, ss] = timecode.split(':');
+    return parseFloat(hh) * 3600 + parseFloat(mm) * 60 + parseFloat(ss);
+  }
 
 
   createWindow();
