@@ -17,6 +17,9 @@ export const AppProvider = ({ children }) => {
   const [splashMode, setSplashMode] = useState('initial'); 
 
   const [cropQueue, setCropQueue] = useState([]);
+  const [sharedCropLayers, setSharedCropLayers] = useState([]);
+  const [cropOverrides, setCropOverrides] = useState({});
+
 
 
   return (
@@ -29,10 +32,12 @@ export const AppProvider = ({ children }) => {
         selectedFile, setSelectedFile,
         highlightedSections, setHighlightedSections,
         highlightLabels, setHighlightLabels,
-        wavPath, setWavPath, // ✅ NEW
-        showSplash, setShowSplash, // <-- Add this
-        splashMode, setSplashMode, // <-- Add this
+        wavPath, setWavPath, 
+        showSplash, setShowSplash, 
+        splashMode, setSplashMode, 
         cropQueue, setCropQueue,
+        sharedCropLayers, setSharedCropLayers,
+        cropOverrides, setCropOverrides,
       }}
     >
       {children}

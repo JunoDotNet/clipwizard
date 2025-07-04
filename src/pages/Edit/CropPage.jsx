@@ -5,10 +5,15 @@ import VerticalCanvas from '../../components/Crop/VerticalCanvas';
 
 const CropPage = () => {
   const videoRef = useRef(null);
-  const { selectedFile, videoSrc, clipTabs, cropQueue, setCropQueue } = useAppContext();
+  const {
+    selectedFile, videoSrc, clipTabs, cropQueue, setCropQueue,
+    sharedCropLayers, setSharedCropLayers,
+    cropOverrides, setCropOverrides
+  } = useAppContext();
 
   const [videoSize, setVideoSize] = useState({ width: 1920, height: 1080 });
   const [videoDuration, setVideoDuration] = useState(0);
+
   const [layers, setLayers] = useState([]);
   const [editingCrop, setEditingCrop] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -18,17 +23,16 @@ const CropPage = () => {
   const [queueSource, setQueueSource] = useState('allCuts');
 
   const displayScale = 0.5;
-
   const displayVideoSize = {
     width: videoSize.width * displayScale,
     height: videoSize.height * displayScale,
   };
-
   const displayFrameSize = {
     width: videoSize.height * displayScale,
     height: videoSize.width * displayScale,
   };
 
+  // Load resolution
   useEffect(() => {
     const fetchResolution = async () => {
       if (!selectedFile?.path || !window.electronAPI) return;
@@ -44,7 +48,7 @@ const CropPage = () => {
     fetchResolution();
   }, [selectedFile]);
 
-  // Get actual video duration
+  // Get duration
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -61,6 +65,7 @@ const CropPage = () => {
     return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
   }, [videoRef]);
 
+  // Build queue
   useEffect(() => {
     if (!clipTabs || clipTabs.length === 0) return;
 
@@ -101,6 +106,60 @@ const CropPage = () => {
     setQueueIndex(0);
     console.log('📦 New crop queue:', queue);
   }, [clipTabs, queueSource, setCropQueue, videoDuration]);
+
+  // Track if layers update is from user or programmatic (clip switch)
+  const programmaticUpdateRef = useRef(false);
+
+  useEffect(() => {
+    if (!currentItem) return;
+    const override = cropOverrides[currentItem.id];
+    const sourceLayers = override || sharedCropLayers;
+    programmaticUpdateRef.current = true;
+    setLayers(JSON.parse(JSON.stringify(sourceLayers)));
+    console.log(`📄 Using ${override ? 'OVERRIDE' : 'SHARED'} layers for ${currentItem.id}`);
+    }, [currentItem, sharedCropLayers, cropOverrides]);
+
+
+  // Save override only if user changed layers (not when switching clips)
+  useEffect(() => {
+    if (!currentItem) return;
+    if (programmaticUpdateRef.current) {
+      programmaticUpdateRef.current = false;
+      return;
+    }
+    const hasOverride = !!cropOverrides[currentItem.id];
+    const layersJson = JSON.stringify(layers);
+    if (!hasOverride) {
+      // Update shared crop for all clips
+      if (layersJson !== JSON.stringify(sharedCropLayers)) {
+        setSharedCropLayers(JSON.parse(JSON.stringify(layers)));
+        console.log('🌍 Updated shared crop for all clips');
+      }
+    } else {
+      // Update override for this clip only
+      const override = cropOverrides[currentItem.id];
+      const sourceLayers = override || sharedCropLayers;
+      const sourceJson = JSON.stringify(sourceLayers);
+      if (layersJson === sourceJson) return;
+      setCropOverrides(prev => {
+        const isSameAsShared = layersJson === JSON.stringify(sharedCropLayers);
+        if (isSameAsShared) {
+          if (prev[currentItem.id]) {
+            console.log(`🧹 Removing override for ${currentItem.id}`);
+          }
+          const { [currentItem.id]: _, ...rest } = prev;
+          console.log('🧪 cropOverrides now:', rest);
+          return rest;
+        } else {
+          console.log(`💾 Saving override for ${currentItem.id}`);
+          const next = { ...prev, [currentItem.id]: layers };
+          console.log('🧪 cropOverrides now:', next);
+          return next;
+        }
+      });
+    }
+    // eslint-disable-next-line
+  }, [layers, currentItem?.id]);
 
   useEffect(() => {
     if (currentItem) {
@@ -167,10 +226,34 @@ const CropPage = () => {
                   background: idx === queueIndex ? '#e0f7ff' : '#f4f4f4',
                   border: '1px solid #ccc',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                 }}
                 onClick={() => setQueueIndex(idx)}
               >
-                {item.label} ({item.start.toFixed(1)}s – {item.end.toFixed(1)}s)
+                <span>
+                  {item.label} ({item.start.toFixed(1)}s – {item.end.toFixed(1)}s)
+                </span>
+                {cropOverrides[item.id] ? (
+                  <span style={{ color: '#f90', marginLeft: 8, fontSize: 13 }}>OVERRIDDEN</span>
+                ) : (
+                  <button
+                    style={{ marginLeft: 8, fontSize: 13 }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setCropOverrides(prev => ({
+                        ...prev,
+                        [item.id]: JSON.parse(JSON.stringify(sharedCropLayers)),
+                      }));
+                      // Immediately update layers if this is the current item
+                      if (item.id === currentItem.id) {
+                        programmaticUpdateRef.current = true;
+                        setLayers(JSON.parse(JSON.stringify(sharedCropLayers)));
+                      }
+                    }}
+                  >Override</button>
+                )}
               </li>
             ))}
           </ul>
