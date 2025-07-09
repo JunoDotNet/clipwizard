@@ -11,8 +11,17 @@ const CaptionEditor = ({
   // Update local state when captionData changes (e.g., when switching clips)
   useEffect(() => {
     setFontSize(captionData.fontSize || 24);
-    setCaptionText(captionData.text || '');
-  }, [captionData]);
+    
+    // If no caption text is set, prefill with the clip's dialogue text
+    const newCaptionText = captionData.text || currentItem?.text || '';
+    setCaptionText(newCaptionText);
+    
+    // If we're auto-filling from dialogue and it's different from what was stored, 
+    // update the caption data
+    if (!captionData.text && currentItem?.text && newCaptionText !== captionData.text) {
+      onCaptionChange?.({ ...captionData, text: newCaptionText });
+    }
+  }, [captionData, currentItem?.text, onCaptionChange]);
 
   const handleFontSizeChange = (newSize) => {
     setFontSize(newSize);
@@ -51,7 +60,7 @@ const CaptionEditor = ({
         <textarea
           value={captionText}
           onChange={(e) => handleTextChange(e.target.value)}
-          placeholder="Enter your caption text here..."
+          placeholder={currentItem?.text ? "Caption will auto-fill from dialogue. Edit as needed..." : "Enter your caption text here..."}
           style={{
             width: '100%',
             height: 120,

@@ -125,6 +125,7 @@ const QueuePageBase = ({
             start: clip.start,
             end: clip.end,
             label: `${tab.name} - Clip ${index + 1}`,
+            text: clip.text,
             sourceTabId: tab.id,
         }))
         );
@@ -150,6 +151,7 @@ const QueuePageBase = ({
             start: clip.start,
             end: clip.end,
             label: `${tab.name} - Clip ${index + 1}`,
+            text: clip.text,
             sourceTabId: tab.id,
         }));
         }
