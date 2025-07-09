@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop }) => {
+const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop, captionData = {} }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef();
 
@@ -48,6 +48,32 @@ const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop 
       ctx.restore();
     }
 
+    // Draw caption overlay if present
+    if (captionData.text && captionData.text.trim()) {
+      const { text, fontSize = 24 } = captionData;
+      
+      ctx.save();
+      
+      // Set font properties
+      ctx.font = `bold ${fontSize}px Arial`;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      
+      // Position caption at bottom center of canvas
+      const x = canvasSize.height / 2;
+      const y = canvasSize.width - 30; // 30px from bottom
+      
+      // Draw text outline (stroke) first
+      ctx.strokeText(text, x, y);
+      // Draw filled text on top
+      ctx.fillText(text, x, y);
+      
+      ctx.restore();
+    }
+
   };
 
   // Animation loop for smooth updates
@@ -63,7 +89,7 @@ const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop 
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
     // eslint-disable-next-line
-  }, [canvasSize, layers, videoRef, activeCrop]);
+  }, [canvasSize, layers, videoRef, activeCrop, captionData]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

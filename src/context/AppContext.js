@@ -17,8 +17,22 @@ export const AppProvider = ({ children }) => {
   const [splashMode, setSplashMode] = useState('initial'); 
 
   const [cropQueue, setCropQueue] = useState([]);
-  const [sharedCropLayers, setSharedCropLayers] = useState([]);
-  const [cropOverrides, setCropOverrides] = useState({});
+  
+  // Initialize crop data as empty - only load from .wizard files
+  const [sharedCropLayers, setSharedCropLayersState] = useState([]);
+  const [cropOverrides, setCropOverridesState] = useState({});
+
+  // Initialize caption data as empty - only load from .wizard files
+  const [captionOverrides, setCaptionOverridesState] = useState({});
+
+  // Sharing state - persist across page switches
+  const [brokenFromSharing, setBrokenFromSharingState] = useState(new Set());
+  const [sharedGroups, setSharedGroupsState] = useState({});
+
+  // Caption sharing state - separate from crop sharing
+  const [captionBrokenFromSharing, setCaptionBrokenFromSharingState] = useState(new Set());
+  const [captionSharedGroups, setCaptionSharedGroupsState] = useState({});
+
   // Load sceneSegments from localStorage if available
   const [sceneSegments, setSceneSegmentsState] = useState(() => {
     try {
@@ -29,16 +43,55 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  // Save sceneSegments to localStorage whenever it changes
+  // Only save sceneSegments to localStorage - crop data is saved in .wizard files
   useEffect(() => {
     try {
       localStorage.setItem('sceneSegments', JSON.stringify(sceneSegments));
     } catch {}
   }, [sceneSegments]);
 
-  // Provide a setter that updates state
+  // Provide setters that update state
+  const setSharedCropLayers = (layers) => {
+    setSharedCropLayersState(layers);
+  };
+
+  const setCropOverrides = (overrides) => {
+    setCropOverridesState(overrides);
+  };
+
+  const setCaptionOverrides = (overrides) => {
+    setCaptionOverridesState(overrides);
+  };
+
   const setSceneSegments = (segments) => {
     setSceneSegmentsState(segments);
+  };
+
+  const setBrokenFromSharing = (broken) => {
+    setBrokenFromSharingState(broken);
+  };
+
+  const setSharedGroups = (groups) => {
+    setSharedGroupsState(groups);
+  };
+
+  const setCaptionBrokenFromSharing = (broken) => {
+    setCaptionBrokenFromSharingState(broken);
+  };
+
+  const setCaptionSharedGroups = (groups) => {
+    setCaptionSharedGroupsState(groups);
+  };
+
+  // Function to clear crop data when loading a new video (not from .wizard file)
+  const clearCropData = () => {
+    setSharedCropLayersState([]);
+    setCropOverridesState({});
+    setCaptionOverridesState({});
+    setBrokenFromSharingState(new Set());
+    setSharedGroupsState({});
+    setCaptionBrokenFromSharingState(new Set());
+    setCaptionSharedGroupsState({});
   };
 
   return (
@@ -57,7 +110,13 @@ export const AppProvider = ({ children }) => {
         cropQueue, setCropQueue,
         sharedCropLayers, setSharedCropLayers,
         cropOverrides, setCropOverrides,
+        captionOverrides, setCaptionOverrides,
         sceneSegments, setSceneSegments,
+        brokenFromSharing, setBrokenFromSharing,
+        sharedGroups, setSharedGroups,
+        captionBrokenFromSharing, setCaptionBrokenFromSharing,
+        captionSharedGroups, setCaptionSharedGroups,
+        clearCropData,
       }}
     >
       {children}

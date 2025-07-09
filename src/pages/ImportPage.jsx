@@ -13,7 +13,8 @@ const ImportPage = () => {
   const {
     setVideoSrc, setTranscript, setClipTabs, setSelectedFile, setActiveTabId,
     videoSrc, transcript, highlightedSections, setHighlightedSections, highlightLabels,
-    showSplash, setShowSplash // <-- use from context
+    showSplash, setShowSplash, // <-- use from context
+    clearCropData, // Add clearCropData function
   } = useAppContext();
 
   const { transcribe, transcription } = useTranscription();
@@ -30,6 +31,7 @@ const ImportPage = () => {
     setSelectedFile(file);
     setLoading(true);
     transcribe(file);
+    clearCropData(); // Clear crop data when loading a new video
     // setShowSplash(false); // Moved to after transcript loads
   };
 
