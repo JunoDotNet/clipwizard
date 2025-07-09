@@ -14,6 +14,8 @@ const ExportPage = () => {
     clipTabs,
     setClipTabs,
     activeTabId,
+    cropOverrides,
+    captionOverrides,
   } = useAppContext();
 
   const [exportTypes, setExportTypes] = useState({
@@ -79,7 +81,35 @@ const ExportPage = () => {
 
       if (exportTypes.mp4) {
         const mp4Path = `${exportPath}/${safeName}.mp4`;
-        await window.electronAPI.exportSingleCut(buffer, selectedFile.name, tab.clips, mp4Path);
+        
+        // Get crop and caption data for this tab's clips
+        const enrichedClips = tab.clips.map((clip, index) => {
+          const clipId = `${tab.id}-clip-${index}`;
+          return {
+            ...clip,
+            cropData: cropOverrides[clipId] || [],
+            captionData: captionOverrides[clipId] || {}
+          };
+        });
+        
+        // Try new export function with effects, fallback to basic export
+        try {
+          if (window.electronAPI.exportSingleCutWithEffects) {
+            await window.electronAPI.exportSingleCutWithEffects(
+              buffer, 
+              selectedFile.name, 
+              enrichedClips, 
+              mp4Path, 
+              videoResolution
+            );
+          } else {
+            // Fallback to basic export without effects
+            await window.electronAPI.exportSingleCut(buffer, selectedFile.name, tab.clips, mp4Path);
+          }
+        } catch (err) {
+          console.warn('Advanced export failed, falling back to basic export:', err);
+          await window.electronAPI.exportSingleCut(buffer, selectedFile.name, tab.clips, mp4Path);
+        }
       }
 
       if (exportTypes.xml) {
@@ -155,7 +185,32 @@ const ExportPage = () => {
                   type="checkbox"
                   checked={exportTypes.mp4}
                   onChange={(e) => setExportTypes(prev => ({ ...prev, mp4: e.target.checked }))}
-                /> MP4 Clips
+                /> MP4 Clips {/* Show if crops/captions will be applied */}
+                {(() => {
+                  // Check if any selected tabs have crop or caption data
+                  const hasEffects = filteredTabs.some(tab => 
+                    tab.clips.some((clip, index) => {
+                      const clipId = `${tab.id}-clip-${index}`;
+                      const hasCrop = cropOverrides[clipId] && cropOverrides[clipId].length > 0;
+                      const hasCaption = captionOverrides[clipId] && captionOverrides[clipId].text && captionOverrides[clipId].text.trim();
+                      return hasCrop || hasCaption;
+                    })
+                  );
+                  
+                  const hasAspectRatioChange = filteredTabs.some(tab => 
+                    tab.clips.some((clip, index) => {
+                      const clipId = `${tab.id}-clip-${index}`;
+                      return cropOverrides[clipId] && cropOverrides[clipId].length > 0;
+                    })
+                  );
+                  
+                  if (hasAspectRatioChange) {
+                    return <span style={{ color: '#007acc', fontSize: 11 }}> (vertical {videoResolution.height}x{videoResolution.width})</span>;
+                  } else if (hasEffects) {
+                    return <span style={{ color: '#007acc', fontSize: 11 }}> (with captions)</span>;
+                  }
+                  return null;
+                })()}
               </label>
               <label>
                 <input

@@ -21,7 +21,7 @@ ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 const { extractAudioWav } = require('./main/extractAudioWav');
 const { dialog } = require('electron');
-const { exportClips, concatClips } = require('./main/exportClips');
+const { exportClips, exportClipsWithEffects, concatClips } = require('./main/exportClips');
 
 
 // ✅ Define isDev before using it
@@ -368,3 +368,36 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
+ipcMain.handle('export-single-cut-with-effects', async (event, buffer, fileName, clips, outputPath, videoResolution) => {
+    try {
+      if (!outputPath) throw new Error('No output path provided.');
+
+      const adjustedClips = clips.map(c => ({
+        adjustedStart: c.start + (c.startOffset || 0),
+        adjustedEnd: c.end + (c.endOffset || 0),
+        cropData: c.cropData || [],
+        captionData: c.captionData || {}
+      }));
+
+      // Check if any clips have effects that need special handling
+      const hasEffects = adjustedClips.some(clip => 
+        (clip.cropData && clip.cropData.length > 0) || 
+        (clip.captionData && clip.captionData.text && clip.captionData.text.trim())
+      );
+
+      if (hasEffects) {
+        const { clipPaths } = await exportClipsWithEffects(buffer, fileName, adjustedClips, videoResolution);
+        await concatClips(clipPaths, outputPath);
+      } else {
+        // No effects, use standard export
+        const { clipPaths } = await exportClips(buffer, fileName, adjustedClips);
+        await concatClips(clipPaths, outputPath);
+      }
+
+      return outputPath;
+    } catch (err) {
+      console.error('❌ export-single-cut-with-effects failed:', err);
+      throw err;
+    }
+  });

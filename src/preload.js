@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportSingleCut: (buffer, fileName, clips, outputPath) =>
   ipcRenderer.invoke('export-single-cut', buffer, fileName, clips, outputPath),
 
+  exportSingleCutWithEffects: (buffer, fileName, clips, outputPath, videoResolution) =>
+  ipcRenderer.invoke('export-single-cut-with-effects', buffer, fileName, clips, outputPath, videoResolution),
+
   saveXmlToPath: (filePath, xmlContent) =>
   ipcRenderer.invoke('save-xml-to-path', filePath, xmlContent),
 
