@@ -177,16 +177,53 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
     // Apply caption overlay if present
     if (captionData.text && captionData.text.trim()) {
       const fontSize = captionData.fontSize || 24;
+      const fontFamily = captionData.fontFamily || 'Arial';
+      const customFontPath = captionData.customFontPath;
+      const fontColor = captionData.fontColor || '#ffffff';
       const text = captionData.text.replace(/'/g, "\\'"); // Escape single quotes
       
-      // Scale font size for vertical video
-      const scaledFontSize = hasActiveCrops ? Math.round(fontSize * 1.5) : fontSize;
+      // Use the original font size - no scaling
+      const scaledFontSize = fontSize;
       
-      // Add text overlay
-      filterComplex.push(
-        `${currentStream}drawtext=text='${text}':fontcolor=white:fontsize=${scaledFontSize}:x=(w-text_w)/2:y=h-th-30:box=1:boxcolor=black@0.5[captioned]`
-      );
-      currentStream = '[captioned]';
+      let fontParam = '';
+      if (fontFamily === 'custom' && customFontPath) {
+        // Use custom font file
+        fontParam = `fontfile='${customFontPath.replace(/\\/g, '/')}':`;
+      } else {
+        // Use system font
+        const systemFont = fontFamily.replace(/\s+/g, '');
+        fontParam = `font='${systemFont}':`;
+      }
+      
+      // Convert hex color to ffmpeg format (remove #)
+      const ffmpegColor = fontColor.replace('#', '');
+      
+      // Handle multi-line text
+      const lines = text.split('\n');
+      if (lines.length === 1) {
+        // Single line - add stroke for outline effect like canvas
+        filterComplex.push(
+          `${currentStream}drawtext=text='${text}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=(w-text_w)/2:y=h-th-30:borderw=3:bordercolor=black[captioned]`
+        );
+        currentStream = '[captioned]';
+      } else {
+        // Multi-line - create overlay for each line with stroke
+        const lineHeight = Math.round(scaledFontSize * 1.2);
+        const totalHeight = lines.length * lineHeight;
+        // Position from bottom up: start with the bottom margin, then go up by total height
+        const bottomMargin = 30;
+        const startY = `h-${bottomMargin + totalHeight}`;
+        
+        lines.forEach((line, index) => {
+          const y = `${startY}+${index * lineHeight}`;
+          const outputLabel = index === lines.length - 1 ? '[captioned]' : `[line${index}]`;
+          
+          filterComplex.push(
+            `${currentStream}drawtext=text='${line}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=(w-text_w)/2:y=${y}:borderw=3:bordercolor=black${outputLabel}`
+          );
+          currentStream = outputLabel;
+        });
+      }
     }
 
     // Apply filters and output settings

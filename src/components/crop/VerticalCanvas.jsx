@@ -1,8 +1,49 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop, captionData = {} }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef();
+  const [customFontLoaded, setCustomFontLoaded] = useState(false);
+  const [customFontFamily, setCustomFontFamily] = useState('');
+
+  // Load custom font when captionData changes
+  useEffect(() => {
+    const { fontFamily, customFontPath } = captionData;
+    if (fontFamily === 'custom' && customFontPath) {
+      const loadCustomFont = async () => {
+        try {
+          const fontFileName = customFontPath.split('\\').pop() || customFontPath.split('/').pop();
+          const fontName = `CustomFont_${fontFileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_')}`;
+          
+          const result = await window.electronAPI.readFontFile(customFontPath);
+          if (!result.success) {
+            throw new Error(result.error);
+          }
+          
+          const extension = fontFileName.split('.').pop().toLowerCase();
+          let format = 'truetype';
+          if (extension === 'otf') format = 'opentype';
+          else if (extension === 'woff') format = 'woff';
+          else if (extension === 'woff2') format = 'woff2';
+          
+          const fontFace = new FontFace(fontName, `url(data:font/${format};base64,${result.data})`);
+          await fontFace.load();
+          document.fonts.add(fontFace);
+          
+          setCustomFontFamily(fontName);
+          setCustomFontLoaded(true);
+        } catch (error) {
+          console.warn('Could not load custom font for canvas:', error);
+          setCustomFontLoaded(false);
+          setCustomFontFamily('');
+        }
+      };
+      loadCustomFont();
+    } else {
+      setCustomFontLoaded(false);
+      setCustomFontFamily('');
+    }
+  }, [captionData.fontFamily, captionData.customFontPath]);
 
   // Draw function for current video frame and visible layers
   const draw = () => {
@@ -50,13 +91,23 @@ const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop,
 
     // Draw caption overlay if present
     if (captionData.text && captionData.text.trim()) {
-      const { text, fontSize = 24 } = captionData;
+      const { text, fontSize = 24, fontFamily = 'Arial', customFontPath, fontColor = '#ffffff' } = captionData;
       
       ctx.save();
       
+      // Determine which font to use
+      let canvasFont = fontFamily;
+      if (fontFamily === 'custom') {
+        if (customFontLoaded && customFontFamily) {
+          canvasFont = customFontFamily;
+        } else {
+          canvasFont = 'Arial'; // Fallback
+        }
+      }
+      
       // Set font properties
-      ctx.font = `bold ${fontSize}px Arial`;
-      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${fontSize}px ${canvasFont}`;
+      ctx.fillStyle = fontColor; // Use selected color
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 3;
       ctx.textAlign = 'center';
@@ -64,12 +115,19 @@ const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop,
       
       // Position caption at bottom center of canvas
       const x = canvasSize.height / 2;
-      const y = canvasSize.width - 30; // 30px from bottom
+      const lines = text.split('\n');
+      const lineHeight = fontSize * 1.2; // 120% line height
+      const totalHeight = lines.length * lineHeight;
+      const startY = canvasSize.width - 30 - totalHeight + lineHeight; // Start position
       
-      // Draw text outline (stroke) first
-      ctx.strokeText(text, x, y);
-      // Draw filled text on top
-      ctx.fillText(text, x, y);
+      // Draw each line
+      lines.forEach((line, index) => {
+        const y = startY + (index * lineHeight);
+        // Draw text outline (stroke) first
+        ctx.strokeText(line, x, y);
+        // Draw filled text on top
+        ctx.fillText(line, x, y);
+      });
       
       ctx.restore();
     }
@@ -89,7 +147,7 @@ const VerticalCanvas = ({ canvasSize, displaySize, layers, videoRef, activeCrop,
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
     // eslint-disable-next-line
-  }, [canvasSize, layers, videoRef, activeCrop, captionData]);
+  }, [canvasSize, layers, videoRef, activeCrop, captionData, customFontLoaded, customFontFamily]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

@@ -48,6 +48,7 @@ const CaptionPage = () => {
             captionData={currentData}
             onCaptionChange={handleCaptionChange}
             videoRef={videoRef}
+            videoSize={videoSize}
           />
           
           {/* Hidden video element to provide video source for VerticalCanvas */}

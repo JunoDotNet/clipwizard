@@ -225,6 +225,24 @@ app.whenReady().then(() => {
     return result;
   });
 
+  ipcMain.handle('show-open-dialog', async (_, options) => {
+    console.log('📁 show-open-dialog called with:', options);
+    const result = await dialog.showOpenDialog(options);
+    return result;
+  });
+
+  ipcMain.handle('read-font-file', async (_, fontPath) => {
+    try {
+      const fs = require('fs');
+      const fontBuffer = fs.readFileSync(fontPath);
+      const base64Font = fontBuffer.toString('base64');
+      return { success: true, data: base64Font };
+    } catch (error) {
+      console.error('Error reading font file:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
 
   ipcMain.handle('save-project', async (event, data) => {
     const { filePath, canceled } = await dialog.showSaveDialog({

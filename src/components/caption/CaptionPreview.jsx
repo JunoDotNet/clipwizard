@@ -1,9 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const CaptionPreview = ({ 
   captionData = {}
 }) => {
-  const { text = '', fontSize = 24 } = captionData;
+  const { text = '', fontSize = 24, fontFamily = 'Arial', customFontPath, fontColor = '#ffffff' } = captionData;
+  const [customFontLoaded, setCustomFontLoaded] = useState(false);
+  const [customFontFamily, setCustomFontFamily] = useState('');
+
+  // Load custom font when customFontPath changes
+  useEffect(() => {
+    if (fontFamily === 'custom' && customFontPath) {
+      const loadCustomFont = async () => {
+        try {
+          // Create a unique font family name based on the file path
+          const fontFileName = customFontPath.split('\\').pop() || customFontPath.split('/').pop();
+          const fontName = `CustomFont_${fontFileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_')}`;
+          
+          // Read font file as base64 through Electron
+          const result = await window.electronAPI.readFontFile(customFontPath);
+          if (!result.success) {
+            throw new Error(result.error);
+          }
+          
+          // Determine font format based on file extension
+          const extension = fontFileName.split('.').pop().toLowerCase();
+          let format = 'truetype'; // default
+          if (extension === 'otf') format = 'opentype';
+          else if (extension === 'woff') format = 'woff';
+          else if (extension === 'woff2') format = 'woff2';
+          
+          // Create font face with base64 data
+          const fontFace = new FontFace(fontName, `url(data:font/${format};base64,${result.data})`);
+          await fontFace.load();
+          
+          // Add to document fonts
+          document.fonts.add(fontFace);
+          
+          setCustomFontFamily(fontName);
+          setCustomFontLoaded(true);
+        } catch (error) {
+          console.warn('Could not load custom font for preview:', error);
+          setCustomFontLoaded(false);
+          setCustomFontFamily('');
+        }
+      };
+      
+      loadCustomFont();
+    } else {
+      setCustomFontLoaded(false);
+      setCustomFontFamily('');
+    }
+  }, [fontFamily, customFontPath]);
+
+  // Determine which font to use for preview
+  const getPreviewFont = () => {
+    if (fontFamily === 'custom') {
+      if (customFontLoaded && customFontFamily) {
+        return customFontFamily;
+      } else {
+        return 'Arial'; // Fallback while loading or if failed
+      }
+    }
+    return fontFamily;
+  };
 
   if (!text.trim()) {
     return (
@@ -21,6 +80,11 @@ const CaptionPreview = ({
         marginBottom: 10
       }}>
         Caption preview will appear here
+        {fontFamily === 'custom' && customFontPath && !customFontLoaded && (
+          <span style={{ fontSize: 10, marginLeft: 8, color: '#666' }}>
+            (Loading custom font...)
+          </span>
+        )}
       </div>
     );
   }
@@ -42,8 +106,9 @@ const CaptionPreview = ({
     }}>
       {/* Caption text preview */}
       <div style={{
-        color: '#333', // Dark text instead of white
+        color: fontColor, // Use selected color
         fontSize: Math.max(12, fontSize * 0.3), // Smaller scale for preview
+        fontFamily: getPreviewFont(), // Use loaded custom font or fallback
         fontWeight: 'bold',
         textAlign: 'center',
         wordWrap: 'break-word',
@@ -67,7 +132,7 @@ const CaptionPreview = ({
         padding: '2px 4px',
         borderRadius: 2
       }}>
-        Preview
+        Preview {fontFamily === 'custom' && customFontPath && !customFontLoaded && '(Loading...)'}
       </div>
     </div>
   );

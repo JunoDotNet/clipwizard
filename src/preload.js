@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   showSaveDialog: (options) => ipcRenderer.invoke('show-save-dialog', options),
 
+  showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
+
+  readFontFile: (fontPath) => ipcRenderer.invoke('read-font-file', fontPath),
+
 
   loadProject: () => ipcRenderer.invoke('load-project'),          
 
