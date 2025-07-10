@@ -83,11 +83,30 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       let baseStream = '[bg]';
       const visibleLayers = cropData.filter(layer => layer && layer.crop && !layer.hidden);
       
+      // Sort layers by z-index to ensure correct stacking order (bottom to top)
+      // Note: In the crop page, layer #1 is back (lowest), highest number is front (highest)
+      // So we sort in REVERSE order: higher zIndex values should be processed LAST (on top)
+      visibleLayers.sort((a, b) => {
+        const aZ = (a.zIndex !== undefined) ? a.zIndex : 0;
+        const bZ = (b.zIndex !== undefined) ? b.zIndex : 0;
+        return bZ - aZ; // REVERSED: higher zIndex goes later in processing (on top)
+      });
+      
       // Debug logging
       console.log('🎬 Export clip with effects:', {
         hasActiveCrops,
         cropLayersCount: cropData.length,
-        visibleLayers: cropData.filter(layer => layer && layer.crop && !layer.hidden).length,
+        visibleLayersCount: visibleLayers.length,
+        originalLayerOrder: cropData.map((layer, i) => ({ 
+          originalIndex: i, 
+          zIndex: layer.zIndex, 
+          hidden: layer.hidden 
+        })),
+        sortedLayerOrder: visibleLayers.map((layer, i) => ({ 
+          sortedIndex: i, 
+          zIndex: layer.zIndex,
+          originalIndex: cropData.indexOf(layer)
+        })),
         outputDimensions: `${outputWidth}x${outputHeight}`,
         captionText: captionData.text || 'none'
       });
@@ -96,6 +115,8 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       visibleLayers.forEach((layer, index) => {
         const { x, y, width, height } = layer.crop;
         const { scale = 1, rotate = 0, x: offsetX = 0, y: offsetY = 0 } = layer.transform || {};
+        
+        console.log(`🧩 Processing layer ${index}:`, { zIndex: layer.zIndex || 0, rotate, scale, crop: { x, y, width, height } });
         
         // For each layer, start from the original video input
         let layerStream = '[0:v]';
@@ -112,9 +133,26 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
           layerStream = `[scaled${index}]`;
         }
         
-        // Apply rotation if needed
+        // Apply rotation if needed - transparent background approach
         if (rotate !== 0) {
-          filterComplex.push(`${layerStream}rotate=${rotate * Math.PI / 180}[rotated${index}]`);
+          // Handle common 90-degree rotations with transpose (perfect)
+          if (Math.abs(rotate % 90) < 0.1) {
+            const normalizedRotate = ((rotate % 360) + 360) % 360;
+            if (normalizedRotate === 90) {
+              filterComplex.push(`${layerStream}transpose=1[rotated${index}]`);
+            } else if (normalizedRotate === 180) {
+              filterComplex.push(`${layerStream}transpose=1,transpose=1[rotated${index}]`);
+            } else if (normalizedRotate === 270) {
+              filterComplex.push(`${layerStream}transpose=2[rotated${index}]`);
+            } else {
+              // 0 degrees, no rotation needed
+              filterComplex.push(`${layerStream}null[rotated${index}]`);
+            }
+          } else {
+            // For arbitrary angles, auto-size output to fit rotated content
+            const rotationRadians = rotate * Math.PI / 180;
+            filterComplex.push(`${layerStream}rotate=${rotationRadians}:fillcolor=none:ow=rotw(${rotationRadians}):oh=roth(${rotationRadians})[rotated${index}]`);
+          }
           layerStream = `[rotated${index}]`;
         }
         
