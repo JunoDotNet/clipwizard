@@ -61,6 +61,7 @@ const CaptionPage = () => {
             layers={Array.isArray(currentData) ? currentData : []}
             onNewLayer={handleNewLayer}
             onUpdateLayers={handleUpdateLayers}
+            initialText={currentItem?.text || ''} 
           />
           <CaptionLayerPanel
             layers={Array.isArray(currentData) ? currentData : []}

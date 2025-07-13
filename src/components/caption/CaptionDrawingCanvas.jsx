@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import CaptionEditorBox from './CaptionEditorBox';
+import { drawWrappedText } from '../../utils/drawWrappedText';
 
 const CaptionDrawingCanvas = ({
   videoRef,
@@ -9,6 +10,7 @@ const CaptionDrawingCanvas = ({
   layers = [],
   onNewLayer,
   onUpdateLayers,
+  initialText = '', 
 }) => {
   const safeLayers = Array.isArray(layers) ? layers : [];
   const containerRef = useRef(null);
@@ -104,6 +106,19 @@ const CaptionDrawingCanvas = ({
         ctx.restore();
       });
 
+      // ✅ Draw caption text
+      safeLayers.forEach(layer => {
+        if (layer.hidden) return;
+        const { box, text = '' } = layer;
+        drawWrappedText(ctx, text, box, {
+          font: 'Arial',
+          color: 'white',
+          lineHeight: 1.2,
+          align: 'left',
+          padding: 6,
+        });
+      });
+
       if (running) requestAnimationFrame(draw);
     };
 
@@ -111,7 +126,7 @@ const CaptionDrawingCanvas = ({
     return () => {
       running = false;
     };
-  }, [canvasSize, cropLayers, videoRef]);
+  }, [canvasSize, cropLayers, videoRef, safeLayers]);
 
   const handleMouseDown = (e) => {
     const pos = getMouse(e);
@@ -135,7 +150,7 @@ const CaptionDrawingCanvas = ({
     if (tempBox && tempBox.width > 10 && tempBox.height > 10) {
       onNewLayer({
         id: `caption-${Date.now()}`,
-        text: '',
+        text: initialText, // ✅ use clip text here
         box: tempBox,
         hidden: false,
       });
@@ -143,6 +158,7 @@ const CaptionDrawingCanvas = ({
     setDrawStart(null);
     setTempBox(null);
   };
+
 
   return (
     <div
@@ -196,11 +212,18 @@ const CaptionDrawingCanvas = ({
           canvasSize={canvasSize}
           onUpdate={(id, newBox) => {
             const updated = safeLayers.map((l) =>
-              l.id === id ? { 
-                ...l, 
-                box: { x: newBox.x, y: newBox.y, width: newBox.width, height: newBox.height },
-                text: newBox.text 
-              } : l
+              l.id === id
+                ? {
+                    ...l,
+                    box: {
+                      x: newBox.x,
+                      y: newBox.y,
+                      width: newBox.width,
+                      height: newBox.height,
+                    },
+                    text: newBox.text,
+                  }
+                : l
             );
             if (onUpdateLayers) onUpdateLayers(updated);
           }}

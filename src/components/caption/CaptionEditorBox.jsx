@@ -79,23 +79,6 @@ const CaptionEditorBox = ({ box, scale, onUpdate, id, canvasSize }) => {
         }}
         onMouseDown={handleMouseDownDrag}
     >
-        <textarea
-        value={box.text || ''}
-        onChange={(e) => onUpdate(id, { ...box, text: e.target.value })}
-        style={{
-            width: '100%',
-            height: '100%',
-            resize: 'none',
-            border: 'none',
-            background: 'transparent',
-            color: 'white',
-            fontSize: 16,
-            fontFamily: 'Arial, sans-serif',
-            outline: 'none',
-            padding: 4,
-            boxSizing: 'border-box',
-        }}
-        />
 
         {/* Resize handle */}
         <div
