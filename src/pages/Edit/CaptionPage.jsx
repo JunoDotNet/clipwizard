@@ -1,81 +1,70 @@
 import React, { useState, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import VerticalCanvas from '../../components/crop/VerticalCanvas';
-import CaptionEditor from '../../components/caption/CaptionEditor';
-import CaptionPreview from '../../components/caption/CaptionPreview';
 import QueuePageBase from '../../components/QueuePageBase';
+import CaptionDrawingCanvas from '../../components/caption/CaptionDrawingCanvas';
+import CaptionLayerPanel from '../../components/caption/CaptionLayerPanel';
 
 const CaptionPage = () => {
   const {
-    cropOverrides, // Get crop overrides to display the cropped video
-    captionOverrides, setCaptionOverrides, // Use global caption state
+    captionOverrides,
+    setCaptionOverrides,
+    cropOverrides,
   } = useAppContext();
 
-  const [sharedCaptionData] = useState({}); // Default shared caption settings
-  const [currentData, setCurrentData] = useState({}); // Current caption data being edited
-  
-  // Memoize the callback functions to prevent infinite re-renders
+  const [currentData, setCurrentData] = useState([]); // Current caption layers for active clip
+  const [sharedCaptionData] = useState({}); // Reserved for future shared settings
+
+  // Access per-clip caption data
   const getItemData = useCallback(() => captionOverrides, [captionOverrides]);
   const getSharedData = useCallback(() => sharedCaptionData, [sharedCaptionData]);
+
   const handleDataChange = useCallback((data) => {
-    console.log('📝 Caption data changed:', data);
+    console.log('📝 Caption layers changed:', data);
   }, []);
 
-  const renderCaptionEditor = ({ videoRef, videoSrc, videoSize, displayVideoSize, displayFrameSize, currentItem }) => {
-    // Get the crop layers for the current clip to display the cropped output
-    const currentCropLayers = currentItem ? (cropOverrides[currentItem.id] || []) : [];
+  const handleUpdateLayers = useCallback((updatedLayers) => {
+    setCurrentData(updatedLayers);
+    handleDataChange(updatedLayers);
+  }, [handleDataChange]);
 
-    const handleCaptionChange = (newCaptionData) => {
-      if (!currentItem) return;
-      
-      // Update the current data state (QueuePageBase will handle saving to overrides)
-      setCurrentData(newCaptionData);
-      
-      // Trigger the data change callback
-      handleDataChange(newCaptionData);
-    };
-    
+  const handleNewLayer = useCallback((newLayer) => {
+    setCurrentData((prev) => {
+      const prevArray = Array.isArray(prev) ? prev : [];
+      const updated = [...prevArray, newLayer];
+      handleDataChange(updated);
+      return updated;
+    });
+  }, [handleDataChange]);
+
+
+  const renderEditor = ({ currentItem, videoRef, videoSrc, displayFrameSize, videoSize }) => {
+    console.log('📝 CaptionPage currentData:', currentData, 'type:', typeof currentData, 'isArray:', Array.isArray(currentData));
+
     return (
       <div style={{ display: 'flex', gap: 40 }}>
-        <div style={{ flex: 1 }}>
-          {/* Caption Preview */}
-          <CaptionPreview 
-            captionData={currentData}
-          />
-          
-          <CaptionEditor
-            currentItem={currentItem}
-            captionData={currentData}
-            onCaptionChange={handleCaptionChange}
-            videoRef={videoRef}
-            videoSize={videoSize}
-          />
-          
-          {/* Hidden video element to provide video source for VerticalCanvas */}
+        <div>
+          <h4>🖍 Draw Caption Boxes</h4>
+          {/* Hidden video element to provide video data for crop rendering */}
           {videoSrc && (
             <video
               ref={videoRef}
               src={videoSrc}
-              width={displayVideoSize.width}
-              height={displayVideoSize.height}
-              controls
-              style={{ 
-                display: 'none' // Hidden but still provides video source for VerticalCanvas
-              }}
+              style={{ display: 'none' }}
+              preload="metadata"
             />
           )}
-        </div>
-        
-        {/* Vertical video preview showing cropped output */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h4 style={{ margin: '0 0 12px 0', color: '#666' }}>Cropped Video Output</h4>
-          <VerticalCanvas
-            canvasSize={videoSize}
-            displaySize={displayFrameSize}
-            layers={currentCropLayers}
+          <CaptionDrawingCanvas
             videoRef={videoRef}
-            activeCrop={null}
-            captionData={currentData}
+            displaySize={displayFrameSize}
+            videoSize={videoSize}
+            cropLayers={cropOverrides[currentItem?.id] || []}
+            layers={Array.isArray(currentData) ? currentData : []}
+            onNewLayer={handleNewLayer}
+            onUpdateLayers={handleUpdateLayers}
+          />
+          <CaptionLayerPanel
+            layers={Array.isArray(currentData) ? currentData : []}
+            onUpdateLayers={handleUpdateLayers}
           />
         </div>
       </div>
@@ -86,7 +75,7 @@ const CaptionPage = () => {
     <QueuePageBase
       pageType="caption"
       title="💬 Caption Editor"
-      renderEditor={renderCaptionEditor}
+      renderEditor={renderEditor}
       getItemData={getItemData}
       setItemData={setCaptionOverrides}
       getSharedData={getSharedData}
