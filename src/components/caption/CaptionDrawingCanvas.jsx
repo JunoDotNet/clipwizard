@@ -109,12 +109,16 @@ const CaptionDrawingCanvas = ({
       // ✅ Draw caption text
       safeLayers.forEach(layer => {
         if (layer.hidden) return;
-        const { box, text = '', color = 'white', fontFamily = 'Arial' } = layer;
+        const { box, text = '', color = 'white', fontFamily = 'Arial', customFontName, textAlign = 'left' } = layer;
+        
+        // Use custom font name if fontFamily is 'custom' and customFontName is provided
+        const actualFont = fontFamily === 'custom' && customFontName ? customFontName : fontFamily;
+        
         drawWrappedText(ctx, text, box, {
-          font: fontFamily,
+          font: actualFont,
           color: color,
           lineHeight: 1.2,
-          align: 'left',
+          align: textAlign,
           padding: 6,
         });
       });
