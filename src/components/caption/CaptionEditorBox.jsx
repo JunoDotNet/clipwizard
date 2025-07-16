@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 
-const CaptionEditorBox = ({ box, scale, onUpdate, id, canvasSize }) => {
+const CaptionEditorBox = ({ box, scale, onUpdate, id, canvasSize, selected, onSelect }) => {
   const boxRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);

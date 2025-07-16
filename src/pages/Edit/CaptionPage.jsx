@@ -13,6 +13,8 @@ const CaptionPage = () => {
 
   const [currentData, setCurrentData] = useState([]); // Current caption layers for active clip
   const [sharedCaptionData] = useState({}); // Reserved for future shared settings
+  const [selectedLayerId, setSelectedLayerId] = useState(null);
+
 
   // Access per-clip caption data
   const getItemData = useCallback(() => captionOverrides, [captionOverrides]);
@@ -62,12 +64,16 @@ const CaptionPage = () => {
             onNewLayer={handleNewLayer}
             onUpdateLayers={handleUpdateLayers}
             initialText={currentItem?.text || ''} 
-          />
-          <CaptionLayerPanel
-            layers={Array.isArray(currentData) ? currentData : []}
-            onUpdateLayers={handleUpdateLayers}
+            selectedLayerId={selectedLayerId}
+            setSelectedLayerId={setSelectedLayerId}
           />
         </div>
+        <CaptionLayerPanel
+          layers={Array.isArray(currentData) ? currentData : []}
+          onUpdateLayers={handleUpdateLayers}
+          selectedLayerId={selectedLayerId}
+          setSelectedLayerId={setSelectedLayerId}
+        />
       </div>
     );
   };

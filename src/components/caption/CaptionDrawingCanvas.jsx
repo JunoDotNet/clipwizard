@@ -109,10 +109,10 @@ const CaptionDrawingCanvas = ({
       // ✅ Draw caption text
       safeLayers.forEach(layer => {
         if (layer.hidden) return;
-        const { box, text = '' } = layer;
+        const { box, text = '', color = 'white', fontFamily = 'Arial' } = layer;
         drawWrappedText(ctx, text, box, {
-          font: 'Arial',
-          color: 'white',
+          font: fontFamily,
+          color: color,
           lineHeight: 1.2,
           align: 'left',
           padding: 6,
