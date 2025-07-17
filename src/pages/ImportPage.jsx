@@ -72,11 +72,16 @@ const ImportPage = () => {
   };
 
   const handleMark = (id) => {
+    // If we're not in highlighting mode, just jump to the time
     if (!activeLabelId) {
-      alert("❗ Please select a label first.");
+      const line = transcript.find(l => l.id === id);
+      if (line && Number.isFinite(line.start)) {
+        jumpTo(line.start);
+      }
       return;
     }
 
+    // We're in highlighting mode, proceed with highlight logic
     if (markingStartId === null) {
       setMarkingStartId(id);
     } else {
