@@ -19,6 +19,7 @@ const App = () => (
           <Route path="/export" element={<ExportPage />} />
 
           <Route path="/edit" element={<EditLayout />}>
+            <Route index element={<CutPage />} />
             <Route path="cut" element={<CutPage />} />
             <Route path="crop" element={<CropPage />} />
             <Route path="caption" element={<CaptionPage />} />
