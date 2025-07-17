@@ -176,19 +176,108 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
 
     // Apply caption overlay if present
     if (captionData.text && captionData.text.trim()) {
+      console.log('🎬 Backend received caption data:', JSON.stringify(captionData, null, 2));
+      
       const fontSize = captionData.fontSize || 24;
       const fontFamily = captionData.fontFamily || 'Arial';
+      const customFontName = captionData.customFontName;
       const customFontPath = captionData.customFontPath;
-      const fontColor = captionData.fontColor || '#ffffff';
+      const fontColor = captionData.fontColor || captionData.color || '#ffffff';
+      
+      // Check multiple possible property names for text alignment (more comprehensive)
+      let textAlign = 'left'; // default - match UI default
+      if (captionData.textAlign) {
+        textAlign = captionData.textAlign;
+      } else if (captionData.alignment) {
+        textAlign = captionData.alignment;
+      } else if (captionData.align) {
+        textAlign = captionData.align;
+      } else if (captionData.style && captionData.style.textAlign) {
+        textAlign = captionData.style.textAlign;
+      } else if (captionData.style && captionData.style.alignment) {
+        textAlign = captionData.style.alignment;
+      }
+      
+      console.log('🎯 Text alignment detection:', {
+        captionDataKeys: Object.keys(captionData),
+        captionDataTextAlign: captionData.textAlign,
+        captionDataAlignment: captionData.alignment,
+        captionDataAlign: captionData.align,
+        captionDataStyle: captionData.style,
+        rawCaptionDataForAlignment: JSON.stringify({
+          textAlign: captionData.textAlign,
+          alignment: captionData.alignment,
+          align: captionData.align
+        }),
+        finalTextAlign: textAlign,
+        expectedAlignment: 'User claims this should be LEFT, but we detected CENTER'
+      });
+      
       const text = captionData.text.replace(/'/g, "\\'"); // Escape single quotes
       
-      // Use the original font size - no scaling
-      const scaledFontSize = fontSize;
+      // Calculate better font size based on bounding box dimensions (match UI auto-sizing exactly)
+      let scaledFontSize = fontSize;
+      if (captionData.box) {
+        // Scale bounding box to output video dimensions
+        const boxWidthScaled = (captionData.box.width / videoResolution.height) * outputWidth;
+        const boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+        
+        // Match UI's drawWrappedText logic: start with maxFontSize and shrink to fit
+        const maxFontSize = 100; // Same as UI default
+        const minFontSize = 4;   // Same as UI default
+        const padding = 6;       // Same as UI default
+        
+        // Start with max size and shrink until it fits (like UI does)
+        scaledFontSize = maxFontSize;
+        
+        // Simulate text wrapping to check if it fits
+        let fitsInBox = false;
+        while (scaledFontSize >= minFontSize && !fitsInBox) {
+          // Estimate wrapped lines with balanced character width to stay within bounds
+          let avgCharWidth;
+          if (fontFamily.toLowerCase().includes('impact')) {
+            avgCharWidth = scaledFontSize * 0.42; // Balanced for Impact
+          } else if (fontFamily.toLowerCase().includes('arial')) {
+            avgCharWidth = scaledFontSize * 0.48; // Balanced for Arial
+          } else {
+            avgCharWidth = scaledFontSize * 0.45; // Balanced general default
+          }
+          
+          const effectiveWidth = boxWidthScaled - 4; // Small padding to stay within bounds
+          const maxCharsPerLine = Math.floor(effectiveWidth / avgCharWidth);
+          const estimatedLines = Math.ceil(text.length / maxCharsPerLine);
+          const estimatedHeight = estimatedLines * scaledFontSize * 1.2;
+          
+          if (estimatedHeight <= boxHeightScaled - 4) { // Match padding
+            fitsInBox = true;
+          } else {
+            scaledFontSize -= 1;
+          }
+        }
+        
+        console.log('📏 Font size calculation (UI-matched):', {
+          originalBox: captionData.box,
+          boxWidthScaled,
+          boxHeightScaled,
+          textLength: text.length,
+          finalFontSize: scaledFontSize,
+          maxFontSize,
+          minFontSize
+        });
+      }
       
       let fontParam = '';
-      if (fontFamily === 'custom' && customFontPath) {
-        // Use custom font file
-        fontParam = `fontfile='${customFontPath.replace(/\\/g, '/')}':`;
+      if (fontFamily === 'custom') {
+        if (customFontPath) {
+          // Use custom font file path
+          fontParam = `fontfile='${customFontPath.replace(/\\/g, '/')}':`;
+        } else if (customFontName) {
+          // Use custom font name
+          fontParam = `font='${customFontName}':`;
+        } else {
+          // Fallback to Arial
+          fontParam = `font='Arial':`;
+        }
       } else {
         // Use system font
         const systemFont = fontFamily.replace(/\s+/g, '');
@@ -198,30 +287,174 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       // Convert hex color to ffmpeg format (remove #)
       const ffmpegColor = fontColor.replace('#', '');
       
-      // Handle multi-line text
-      const lines = text.split('\n');
+      // Calculate text position based on bounding box (not bottom of video)
+      let textX = '(w-text_w)/2'; // center (default)
+      let textY = 'h-th-30'; // fallback to bottom if no box position
+      
+      if (captionData.box) {
+        // Scale bounding box position to output video dimensions
+        const boxXScaled = (captionData.box.x / videoResolution.height) * outputWidth;
+        const boxYScaled = (captionData.box.y / videoResolution.width) * outputHeight;
+        const boxWidthScaled = (captionData.box.width / videoResolution.height) * outputWidth;
+        const boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+        
+        // Position text within the scaled bounding box - respect user's alignment choice
+        if (textAlign === 'left') {
+          textX = Math.round(boxXScaled + 5); // Small left padding to stay within bounds
+        } else if (textAlign === 'right') {
+          textX = `${Math.round(boxXScaled + boxWidthScaled - 5)}-text_w`; // Small right padding
+        } else { // center
+          textX = `${Math.round(boxXScaled + boxWidthScaled / 2)}-(text_w/2)`; // center each line individually
+        }
+        
+        // Position vertically - match UI's drawWrappedText exactly
+        // For single line, calculate offset like UI does: (height - totalHeight) / 2 + padding
+        const lineHeight = scaledFontSize * 1.2;
+        const totalTextHeight = lineHeight; // Single line
+        const verticalOffset = (boxHeightScaled - totalTextHeight) / 2 + 2; // Small 2px padding
+        textY = Math.round(boxYScaled + verticalOffset);
+        
+        console.log('📍 Text positioning (UI-matched):', {
+          originalBox: captionData.box,
+          scaledBox: { x: boxXScaled, y: boxYScaled, width: boxWidthScaled, height: boxHeightScaled },
+          textMetrics: { lineHeight, totalTextHeight: lineHeight, verticalOffset },
+          finalPosition: { x: textX, y: textY },
+          textAlign: textAlign,
+          uiCalculation: `(${boxHeightScaled} - ${lineHeight}) / 2 + 6 = ${verticalOffset}`
+        });
+      } else {
+        // Fallback positioning without bounding box
+        if (textAlign === 'left') {
+          textX = '30'; // left with padding
+        } else if (textAlign === 'right') {
+          textX = 'w-text_w-30'; // right with padding
+        }
+      }
+      
+      // Helper function to estimate text wrapping (balanced to stay within bounding box)
+      const wrapText = (text, maxWidth, fontSize) => {
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        // Balanced character width estimation - generous but not too much
+        let avgCharWidth;
+        if (fontFamily.toLowerCase().includes('impact')) {
+          avgCharWidth = fontSize * 0.42; // Balanced for Impact
+        } else if (fontFamily.toLowerCase().includes('arial')) {
+          avgCharWidth = fontSize * 0.48; // Balanced for Arial
+        } else {
+          avgCharWidth = fontSize * 0.45; // Balanced general default
+        }
+        
+        // Use most of the width but leave small margin to stay within bounds
+        const effectiveMaxWidth = maxWidth - 4; // Small 4px padding to stay within bounds
+        
+        for (const word of words) {
+          const testLine = currentLine + (currentLine ? ' ' : '') + word;
+          // Use actual character count estimation rather than just length
+          const estimatedWidth = testLine.length * avgCharWidth;
+          
+          if (estimatedWidth <= effectiveMaxWidth || !currentLine) {
+            currentLine = testLine;
+          } else {
+            if (currentLine) lines.push(currentLine.trim());
+            currentLine = word;
+          }
+        }
+        if (currentLine) lines.push(currentLine.trim());
+        
+        return lines;
+      };
+      
+      // Handle multi-line text with proper wrapping
+      let lines = text.split('\n'); // Start with explicit line breaks
+      
+      // If we have a bounding box, wrap long lines to fit
+      if (captionData.box) {
+        const boxWidthScaled = (captionData.box.width / videoResolution.height) * outputWidth;
+        const wrappedLines = [];
+        
+        lines.forEach(line => {
+          const wrapped = wrapText(line, boxWidthScaled - 4, scaledFontSize); // Small 4px padding to stay within bounds
+          wrappedLines.push(...wrapped);
+        });
+        
+        lines = wrappedLines;
+        
+        console.log('📝 Text wrapping:', {
+          originalText: text,
+          boxWidth: boxWidthScaled,
+          fontSize: scaledFontSize,
+          wrappedLines: lines
+        });
+        
+        // Auto-adjust font size if wrapped text is too tall for bounding box
+        const lineHeight = scaledFontSize * 1.2;
+        const totalTextHeight = lines.length * lineHeight;
+        const boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+        
+        if (totalTextHeight > boxHeightScaled - 4) { // Small 4px padding to stay within bounds
+          // Reduce font size to fit
+          const maxLinesForBox = Math.floor((boxHeightScaled - 4) / (scaledFontSize * 1.2));
+          if (maxLinesForBox > 0 && lines.length > maxLinesForBox) {
+            // Recalculate with smaller font
+            scaledFontSize = Math.max(8, Math.floor((boxHeightScaled - 4) / (lines.length * 1.2)));
+            
+            console.log('📏 Font size adjusted for text height:', {
+              originalFontSize: fontSize,
+              textHeight: totalTextHeight,
+              boxHeight: boxHeightScaled,
+              adjustedFontSize: scaledFontSize
+            });
+          }
+        }
+      }
       if (lines.length === 1) {
-        // Single line - add stroke for outline effect like canvas
+        // Single line - remove stroke to match UI
         filterComplex.push(
-          `${currentStream}drawtext=text='${text}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=(w-text_w)/2:y=h-th-30:borderw=3:bordercolor=black[captioned]`
+          `${currentStream}drawtext=text='${lines[0]}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=${textX}:y=${textY}[captioned]`
         );
         currentStream = '[captioned]';
       } else {
-        // Multi-line - create overlay for each line with stroke
+        // Multi-line - create overlay for each line without stroke
         const lineHeight = Math.round(scaledFontSize * 1.2);
         const totalHeight = lines.length * lineHeight;
-        // Position from bottom up: start with the bottom margin, then go up by total height
-        const bottomMargin = 30;
-        const startY = `h-${bottomMargin + totalHeight}`;
+        
+        // Match UI's positioning exactly: (height - totalHeight) / 2 + padding
+        // Get box dimensions (they should already be calculated above if we have a box)
+        let boxYScaled, boxHeightScaled;
+        if (captionData.box) {
+          boxYScaled = (captionData.box.y / videoResolution.width) * outputHeight;
+          boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+        } else {
+          // Fallback values if no box
+          boxYScaled = 0;
+          boxHeightScaled = outputHeight;
+        }
+        
+        const verticalOffset = (boxHeightScaled - totalHeight) / 2 + 2; // Small 2px padding
+        const startY = Math.round(boxYScaled + verticalOffset);
+        
+        console.log('📍 Multi-line positioning (UI-matched):', {
+          lines: lines.length,
+          lineHeight,
+          totalHeight,
+          boxHeight: boxHeightScaled,
+          verticalOffset,
+          startY,
+          uiCalculation: `(${boxHeightScaled} - ${totalHeight}) / 2 + 6 = ${verticalOffset}`
+        });
         
         lines.forEach((line, index) => {
-          const y = `${startY}+${index * lineHeight}`;
-          const outputLabel = index === lines.length - 1 ? '[captioned]' : `[line${index}]`;
+          const escapedLine = line.replace(/'/g, "\\'"); // Escape single quotes for each line
+          const y = startY + (index * lineHeight);
+          const outputLabel = index === lines.length - 1 ? 'captioned' : `line${index}`;
           
           filterComplex.push(
-            `${currentStream}drawtext=text='${line}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=(w-text_w)/2:y=${y}:borderw=3:bordercolor=black${outputLabel}`
+            `${currentStream}drawtext=text='${escapedLine}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=${textX}:y=${y}[${outputLabel}]`
           );
-          currentStream = outputLabel;
+          currentStream = `[${outputLabel}]`;
         });
       }
     }

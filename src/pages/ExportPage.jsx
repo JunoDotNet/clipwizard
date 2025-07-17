@@ -85,12 +85,46 @@ const ExportPage = () => {
         // Get crop and caption data for this tab's clips
         const enrichedClips = tab.clips.map((clip, index) => {
           const clipId = `${tab.id}-clip-${index}`;
+          const captionLayers = captionOverrides[clipId] || [];
+          
+          // Convert caption layers array to single caption object for backend
+          // Backend expects: { text, fontSize, fontFamily, fontColor, customFontPath, textAlign }
+          let captionData = {};
+          if (Array.isArray(captionLayers) && captionLayers.length > 0) {
+            // Use the first visible caption layer
+            const activeLayer = captionLayers.find(layer => !layer.hidden) || captionLayers[0];
+            if (activeLayer && (clip.text || activeLayer.text)) {
+              // Map UI layer properties to backend expected format
+              captionData = {
+                text: clip.text || activeLayer.text || '',
+                // Use layer's bounding box for auto-sizing calculation
+                box: activeLayer.box || { width: 400, height: 100 }, // fallback box size
+                fontFamily: activeLayer.fontFamily || 'Arial',
+                customFontName: activeLayer.customFontName, // For custom fonts
+                color: activeLayer.color || '#ffffff', // UI uses 'color', backend expects 'fontColor'
+                fontColor: activeLayer.color || '#ffffff', // Backend compatibility
+                textAlign: activeLayer.textAlign || 'left', // Match CaptionLayerPanel default
+                customFontPath: activeLayer.customFontPath,
+                // Calculate fontSize based on box dimensions (similar to auto-sizing in UI)
+                fontSize: Math.max(16, Math.min(72, Math.floor(activeLayer.box?.height * 0.3) || 24))
+              };
+            }
+          }
+          
+          // Debug: Log what we're sending for captions
+          if (captionData.text && captionData.text.trim()) {
+            console.log(`📝 Export caption data for ${clipId}:`, JSON.stringify(captionData, null, 2));
+          }
+          
           return {
             ...clip,
             cropData: cropOverrides[clipId] || [],
-            captionData: captionOverrides[clipId] || {}
+            captionData: captionData
           };
         });
+        
+        // Debug: Log the enriched clips structure
+        console.log('🚀 Exporting enriched clips:', JSON.stringify(enrichedClips, null, 2));
         
         // Try new export function with effects, fallback to basic export
         try {
@@ -192,7 +226,21 @@ const ExportPage = () => {
                     tab.clips.some((clip, index) => {
                       const clipId = `${tab.id}-clip-${index}`;
                       const hasCrop = cropOverrides[clipId] && cropOverrides[clipId].length > 0;
-                      const hasCaption = captionOverrides[clipId] && captionOverrides[clipId].text && captionOverrides[clipId].text.trim();
+                      const captionLayers = captionOverrides[clipId] || [];
+                      
+                      // Check if there's any caption text (clip text or layer text)
+                      const hasCaption = Array.isArray(captionLayers) && captionLayers.length > 0 && 
+                                       captionLayers.some(layer => (clip.text || layer.text || '').trim());
+                      
+                      // Debug: Log caption detection
+                      if (captionLayers.length > 0) {
+                        console.log(`📊 Caption detection for ${clipId}:`, {
+                          layers: captionLayers,
+                          clipText: clip.text,
+                          hasCaption
+                        });
+                      }
+                      
                       return hasCrop || hasCaption;
                     })
                   );
