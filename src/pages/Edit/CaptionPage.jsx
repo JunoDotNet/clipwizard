@@ -42,6 +42,12 @@ const CaptionPage = () => {
   const renderEditor = ({ currentItem, videoRef, videoSrc, displayFrameSize, videoSize }) => {
     console.log('📝 CaptionPage currentData:', currentData, 'type:', typeof currentData, 'isArray:', Array.isArray(currentData));
 
+    // Create layers with dynamic text - preserve all styling but update text content
+    const layersWithDynamicText = Array.isArray(currentData) ? currentData.map(layer => ({
+      ...layer, // Keep all styling (font, color, position, size, etc.)
+      text: currentItem?.text || layer.text || '' // Use clip's text, fallback to layer text, then empty
+    })) : [];
+
     return (
       <div style={{ display: 'flex', gap: 40 }}>
         <div>
@@ -60,7 +66,7 @@ const CaptionPage = () => {
             displaySize={displayFrameSize}
             videoSize={videoSize}
             cropLayers={cropOverrides[currentItem?.id] || []}
-            layers={Array.isArray(currentData) ? currentData : []}
+            layers={layersWithDynamicText}
             onNewLayer={handleNewLayer}
             onUpdateLayers={handleUpdateLayers}
             initialText={currentItem?.text || ''} 
@@ -69,7 +75,7 @@ const CaptionPage = () => {
           />
         </div>
         <CaptionLayerPanel
-          layers={Array.isArray(currentData) ? currentData : []}
+          layers={layersWithDynamicText}
           onUpdateLayers={handleUpdateLayers}
           selectedLayerId={selectedLayerId}
           setSelectedLayerId={setSelectedLayerId}
