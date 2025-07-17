@@ -94,17 +94,37 @@ const ExportPage = () => {
             // Use the first visible caption layer
             const activeLayer = captionLayers.find(layer => !layer.hidden) || captionLayers[0];
             if (activeLayer && (clip.text || activeLayer.text)) {
+              // Extract custom font information from fontFamily if it starts with "Custom_"
+              let customFontName = activeLayer.customFontName;
+              let customFontPath = activeLayer.customFontPath;
+              
+              // If fontFamily is "Custom_X", extract the font name
+              if (activeLayer.fontFamily && activeLayer.fontFamily.startsWith('Custom_')) {
+                const extractedFontName = activeLayer.fontFamily.replace('Custom_', '');
+                console.log('🎨 Detected custom font in export:', { 
+                  originalFontFamily: activeLayer.fontFamily, 
+                  extractedName: extractedFontName,
+                  hasCustomFontName: !!customFontName,
+                  hasCustomFontPath: !!customFontPath
+                });
+                
+                // Use extracted name if we don't have explicit customFontName
+                if (!customFontName) {
+                  customFontName = extractedFontName;
+                }
+              }
+              
               // Map UI layer properties to backend expected format
               captionData = {
                 text: clip.text || activeLayer.text || '',
                 // Use layer's bounding box for auto-sizing calculation
                 box: activeLayer.box || { width: 400, height: 100 }, // fallback box size
                 fontFamily: activeLayer.fontFamily || 'Arial',
-                customFontName: activeLayer.customFontName, // For custom fonts
+                customFontName: customFontName, // For custom fonts - now properly extracted
                 color: activeLayer.color || '#ffffff', // UI uses 'color', backend expects 'fontColor'
                 fontColor: activeLayer.color || '#ffffff', // Backend compatibility
                 textAlign: activeLayer.textAlign || 'left', // Match CaptionLayerPanel default
-                customFontPath: activeLayer.customFontPath,
+                customFontPath: customFontPath, // For custom font files
                 // Calculate fontSize based on box dimensions (similar to auto-sizing in UI)
                 fontSize: Math.max(16, Math.min(72, Math.floor(activeLayer.box?.height * 0.3) || 24))
               };

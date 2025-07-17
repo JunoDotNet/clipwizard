@@ -184,6 +184,15 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       const customFontPath = captionData.customFontPath;
       const fontColor = captionData.fontColor || captionData.color || '#ffffff';
       
+      console.log('🎨 Font debugging:', {
+        fontFamily,
+        customFontName,
+        customFontPath,
+        fontFamilyType: typeof fontFamily,
+        customFontNameType: typeof customFontName,
+        customFontPathType: typeof customFontPath
+      });
+      
       // Check multiple possible property names for text alignment (more comprehensive)
       let textAlign = 'left'; // default - match UI default
       if (captionData.textAlign) {
@@ -267,21 +276,49 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       }
       
       let fontParam = '';
-      if (fontFamily === 'custom') {
+      if (fontFamily === 'custom' || customFontPath || customFontName) {
         if (customFontPath) {
-          // Use custom font file path
-          fontParam = `fontfile='${customFontPath.replace(/\\/g, '/')}':`;
+          // Use custom font file path - this is the most reliable method for .otf/.ttf files
+          const normalizedPath = customFontPath.replace(/\\/g, '/');
+          
+          // Check if the font file exists and is accessible
+          if (fs.existsSync(customFontPath)) {
+            fontParam = `fontfile='${normalizedPath}':`;
+            console.log('🎨 Using custom font file (verified exists):', customFontPath);
+          } else {
+            console.warn('🚨 Custom font file not found:', customFontPath);
+            // Try using font name as fallback
+            if (customFontName) {
+              fontParam = `font='${customFontName}':`;
+              console.log('🎨 Font file not found, using custom font name:', customFontName);
+            } else {
+              fontParam = `font='Arial':`;
+              console.log('🎨 Font file not found and no name, falling back to Arial');
+            }
+          }
         } else if (customFontName) {
-          // Use custom font name
-          fontParam = `font='${customFontName}':`;
+          // Use custom font name that was loaded via FontFace API
+          // Try to detect if this is a custom uploaded font (like "Custom_gastro")
+          let actualFontName = customFontName;
+          if (customFontName.startsWith('Custom_')) {
+            // Extract the original font name and try both versions
+            const originalName = customFontName.replace('Custom_', '');
+            console.log('🎨 Detected uploaded font, trying original name:', originalName);
+            actualFontName = originalName;
+          }
+          
+          fontParam = `font='${actualFontName}':`;
+          console.log('🎨 Using custom font name:', actualFontName);
         } else {
-          // Fallback to Arial
+          // Fallback to Arial if custom font info is missing
           fontParam = `font='Arial':`;
+          console.log('🎨 Custom font requested but no path/name provided, falling back to Arial');
         }
       } else {
         // Use system font
         const systemFont = fontFamily.replace(/\s+/g, '');
         fontParam = `font='${systemFont}':`;
+        console.log('🎨 Using system font:', systemFont);
       }
       
       // Convert hex color to ffmpeg format (remove #)
