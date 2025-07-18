@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import QueuePageBase from '../../components/QueuePageBase';
 import OutputCanvas from '../../components/shared/OutputCanvas';
@@ -11,39 +11,53 @@ const CaptionPage = () => {
     cropOverrides,
   } = useAppContext();
 
-  const [currentData, setCurrentData] = useState([]); // Current caption layers for active clip
-  const [sharedCaptionData] = useState({}); // Reserved for future shared settings
   const [selectedLayerId, setSelectedLayerId] = useState(null);
-
+  const [currentData, setCurrentData] = useState(null);
 
   // Access per-clip caption data
   const getItemData = useCallback(() => captionOverrides, [captionOverrides]);
-  const getSharedData = useCallback(() => sharedCaptionData, [sharedCaptionData]);
+  const getSharedData = useCallback(() => ({}), []); // Return empty object for shared data
 
   const handleDataChange = useCallback((data) => {
     console.log('📝 Caption layers changed:', data);
   }, []);
 
-  const handleUpdateLayers = useCallback((updatedLayers) => {
-    setCurrentData(updatedLayers);
-    handleDataChange(updatedLayers);
-  }, [handleDataChange]);
+  // Create a new caption layer with default properties
+  const createNewLayer = useCallback((box = null, text = '') => {
+    return {
+      id: `caption-${Date.now()}`,
+      text: text || '',
+      box: box || { x: 100, y: 100, width: 200, height: 50 },
+      hidden: false,
+      fontSize: 24,
+      color: '#ffffff',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      fontFamily: 'Arial, sans-serif',
+      textAlign: 'center',
+      padding: 10
+    };
+  }, []);
 
-  const handleNewLayer = useCallback((newLayer) => {
-    setCurrentData((prev) => {
-      const prevArray = Array.isArray(prev) ? prev : [];
-      const updated = [...prevArray, newLayer];
-      handleDataChange(updated);
-      return updated;
-    });
-  }, [handleDataChange]);
+  const renderEditor = ({ currentData, setCurrentData, currentItem, videoRef, videoSrc, displayFrameSize, videoSize }) => {
+    const layers = Array.isArray(currentData) ? currentData : [];
 
+    const handleUpdateLayers = useCallback((newLayers) => {
+      setCurrentData(newLayers);
+      handleDataChange(newLayers);
+    }, [setCurrentData, handleDataChange]);
 
-  const renderEditor = ({ currentItem, videoRef, videoSrc, displayFrameSize, videoSize }) => {
-    console.log('📝 CaptionPage currentData:', currentData, 'type:', typeof currentData, 'isArray:', Array.isArray(currentData));
+    const handleNewLayer = useCallback((layerData) => {
+      // If layerData is provided (from OutputCanvas drawing), use it directly
+      // Otherwise create a default layer
+      const newLayer = layerData || createNewLayer();
+      const newLayers = [...layers, newLayer];
+      handleUpdateLayers(newLayers);
+    }, [layers, handleUpdateLayers, createNewLayer]);
+
+    console.log('📝 CaptionPage currentData:', layers, 'type:', typeof layers, 'isArray:', Array.isArray(layers));
 
     // Create layers with dynamic text - preserve all styling but update text content
-    const layersWithDynamicText = Array.isArray(currentData) ? currentData.map(layer => ({
+    const layersWithDynamicText = Array.isArray(layers) ? layers.map(layer => ({
       ...layer, // Keep all styling (font, color, position, size, etc.)
       text: currentItem?.text || layer.text || '' // Use clip's text, fallback to layer text, then empty
     })) : [];

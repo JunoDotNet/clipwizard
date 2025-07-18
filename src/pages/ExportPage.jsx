@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import VideoPlayer from '../components/VideoPlayer';
+import OutputCanvas from '../components/shared/OutputCanvas';
 import CutTabGrid from '../components/CutTabGrid';
 import useClipPlayback from '../hooks/useClipPlayback';
 import SelectedCutList from '../components/SelectedCutList';
@@ -32,10 +32,14 @@ const ExportPage = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [videoResolution, setVideoResolution] = useState({ width: 1920, height: 1080 });
+  const [previewTabId, setPreviewTabId] = useState(null); // Track which tab to preview
   const videoRef = useRef();
   const { playClips } = useClipPlayback(videoRef);
 
   const filteredTabs = clipTabs.filter(tab => selectedTabIds.includes(tab.id));
+  
+  // Get the tab to preview (first selected tab or active tab)
+  const previewTab = clipTabs.find(tab => tab.id === (previewTabId || activeTabId)) || filteredTabs[0];
 
   const toggleTab = (id) => {
     setSelectedTabIds(prev =>
@@ -196,20 +200,83 @@ const ExportPage = () => {
   return (
     <div style={{ display: 'flex', padding: 20, gap: 20 }}>
       <div style={{ flex: 1 }}>
-        <h2>📤 Export</h2>
-        <VideoPlayer src={videoSrc} videoRef={videoRef} onLoadedMetadata={e => {
-          setVideoResolution({
-            width: e.target.videoWidth,
-            height: e.target.videoHeight
-          });
-        }} />
+        <h2>📤 Export Preview</h2>
+        
+        {/* Output Preview Canvas */}
+        {previewTab && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <h3 style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+                Preview:
+              </h3>
+              <select
+                value={previewTabId || (previewTab ? previewTab.id : '')}
+                onChange={(e) => setPreviewTabId(e.target.value)}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  fontSize: '12px'
+                }}
+              >
+                {clipTabs.map(tab => (
+                  <option key={tab.id} value={tab.id}>
+                    {tab.name} ({tab.clips.length} clip{tab.clips.length !== 1 ? 's' : ''})
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: '12px', color: '#888' }}>
+                (First clip shown)
+              </span>
+            </div>
+            <OutputCanvas
+              videoRef={videoRef}
+              displaySize={{ width: 400, height: 300 }} // This will be dynamically calculated by OutputCanvas
+              videoSize={videoResolution}
+              cropLayers={(() => {
+                // Get crop data for the first clip in the preview tab
+                const firstClip = previewTab.clips[0];
+                if (!firstClip) return [];
+                const clipId = `${previewTab.id}-clip-0`;
+                return cropOverrides[clipId] || [];
+              })()}
+              captionLayers={(() => {
+                // Get caption data for the first clip in the preview tab
+                const firstClip = previewTab.clips[0];
+                if (!firstClip) return [];
+                const clipId = `${previewTab.id}-clip-0`;
+                return captionOverrides[clipId] || [];
+              })()}
+              activeCrop={null}
+              enableCaptionEditing={false}
+              showResolutionSelector={false}
+            />
+            
+            {/* Hidden video element for the canvas to reference */}
+            <video
+              ref={videoRef}
+              src={videoSrc}
+              style={{ display: 'none' }}
+              onLoadedMetadata={e => {
+                setVideoResolution({
+                  width: e.target.videoWidth,
+                  height: e.target.videoHeight
+                });
+              }}
+            />
+          </div>
+        )}
+        
         <h3 style={{ marginTop: 20 }}>🎞 Select Cuts to Include</h3>
         <CutTabGrid
           tabs={clipTabs}
           selectedIds={selectedTabIds}
           toggleTab={toggleTab}
           updateDescription={updateDescription}
-          onPlayTab={(tab) => playClips(tab.clips)}
+          onPlayTab={(tab) => {
+            setPreviewTabId(tab.id); // Update preview when a tab is played
+            playClips(tab.clips);
+          }}
         />
       </div>
 

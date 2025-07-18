@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import VideoCanvas from '../../components/crop/VideoCanvas';
 import OutputCanvas from '../../components/shared/OutputCanvas';
@@ -11,9 +11,9 @@ const CropPage = () => {
     captionOverrides
   } = useAppContext();
 
-  const [layers, setLayers] = useState([]);
   const [editingCrop, setEditingCrop] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [currentData, setCurrentData] = useState(null);
 
   // Memoize the callback functions to prevent infinite re-renders
   const getItemData = useCallback(() => cropOverrides, [cropOverrides]);
@@ -24,32 +24,36 @@ const CropPage = () => {
     console.log('🎨 Crop data changed:', data);
   }, []);
 
-  const renderCropEditor = ({ videoRef, videoSrc, videoSize, displayVideoSize, displayFrameSize, currentItem }) => (
-    <div style={{ display: 'flex', gap: 40 }}>
-      <VideoCanvas
-        videoPath={videoSrc}
-        videoSize={videoSize}
-        displaySize={displayVideoSize}
-        videoRef={videoRef}
-        layers={layers}
-        setLayers={setLayers}
-        editingCrop={editingCrop}
-        setEditingCrop={setEditingCrop}
-        editingIndex={editingIndex}
-        setEditingIndex={setEditingIndex}
-      />
-      <OutputCanvas
-        videoRef={videoRef}
-        displaySize={displayFrameSize}
-        videoSize={videoSize}
-        cropLayers={layers}
-        captionLayers={captionOverrides[currentItem?.id] || []}
-        activeCrop={editingCrop}
-        enableCaptionEditing={false}
-        showResolutionSelector={true}
-      />
-    </div>
-  );
+  const renderCropEditor = ({ videoRef, videoSrc, videoSize, displayVideoSize, displayFrameSize, currentItem, currentData, setCurrentData }) => {
+    const layers = currentData || [];
+
+    return (
+      <div style={{ display: 'flex', gap: 40 }}>
+        <VideoCanvas
+          videoPath={videoSrc}
+          videoSize={videoSize}
+          displaySize={displayVideoSize}
+          videoRef={videoRef}
+          layers={layers}
+          setLayers={setCurrentData}
+          editingCrop={editingCrop}
+          setEditingCrop={setEditingCrop}
+          editingIndex={editingIndex}
+          setEditingIndex={setEditingIndex}
+        />
+        <OutputCanvas
+          videoRef={videoRef}
+          displaySize={displayFrameSize}
+          videoSize={videoSize}
+          cropLayers={layers}
+          captionLayers={captionOverrides[currentItem?.id] || []}
+          activeCrop={editingCrop}
+          enableCaptionEditing={false}
+          showResolutionSelector={true}
+        />
+      </div>
+    );
+  };
 
   return (
     <QueuePageBase
@@ -60,8 +64,8 @@ const CropPage = () => {
       setItemData={setCropOverrides}
       getSharedData={getSharedData}
       setSharedData={setSharedCropLayers}
-      currentData={layers}
-      setCurrentData={setLayers}
+      currentData={currentData}
+      setCurrentData={setCurrentData}
       onDataChange={handleDataChange}
     />
   );
