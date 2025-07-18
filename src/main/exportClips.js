@@ -46,7 +46,7 @@ function concatClips(clipPaths, finalPath) {
   });
 }
 
-function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
+function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputResolution) {
   return new Promise((resolve, reject) => {
     const { adjustedStart, adjustedEnd, cropData = [], captionData = {} } = clip;
     const duration = Math.max(0, adjustedEnd - adjustedStart);
@@ -55,19 +55,12 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       .setStartTime(adjustedStart)
       .setDuration(duration);
 
-    // Determine if we're creating vertical video (crops present = vertical output)
-    const hasActiveCrops = cropData.length > 0;
-    let outputWidth, outputHeight;
+    // Use the selected output resolution directly
+    const outputWidth = outputResolution.width;
+    const outputHeight = outputResolution.height;
     
-    if (hasActiveCrops) {
-      // Vertical video output (swap dimensions)
-      outputWidth = videoResolution.height;
-      outputHeight = videoResolution.width;
-    } else {
-      // Original aspect ratio
-      outputWidth = videoResolution.width;
-      outputHeight = videoResolution.height;
-    }
+    // Check if we have active crops
+    const hasActiveCrops = cropData.length > 0;
 
     // Build complex filter string
     let filterComplex = [];
@@ -227,9 +220,9 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       // Calculate better font size based on bounding box dimensions (match UI auto-sizing exactly)
       let scaledFontSize = fontSize;
       if (captionData.box) {
-        // Scale bounding box to output video dimensions
-        const boxWidthScaled = (captionData.box.width / videoResolution.height) * outputWidth;
-        const boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+        // Box coordinates are already in output resolution coordinates (no scaling needed)
+        const boxWidthScaled = captionData.box.width;
+        const boxHeightScaled = captionData.box.height;
         
         // Match UI's drawWrappedText logic: start with maxFontSize and shrink to fit
         const maxFontSize = 100; // Same as UI default
@@ -330,10 +323,11 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       
       if (captionData.box) {
         // Scale bounding box position to output video dimensions
-        const boxXScaled = (captionData.box.x / videoResolution.height) * outputWidth;
-        const boxYScaled = (captionData.box.y / videoResolution.width) * outputHeight;
-        const boxWidthScaled = (captionData.box.width / videoResolution.height) * outputWidth;
-        const boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+        // Box coordinates are already in output resolution coordinates (no scaling needed)
+        const boxXScaled = captionData.box.x;
+        const boxYScaled = captionData.box.y;
+        const boxWidthScaled = captionData.box.width;
+        const boxHeightScaled = captionData.box.height;
         
         // Position text within the scaled bounding box - respect user's alignment choice
         if (textAlign === 'left') {
@@ -409,7 +403,7 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
       
       // If we have a bounding box, wrap long lines to fit
       if (captionData.box) {
-        const boxWidthScaled = (captionData.box.width / videoResolution.height) * outputWidth;
+        const boxWidthScaled = captionData.box.width;
         const wrappedLines = [];
         
         lines.forEach(line => {
@@ -429,7 +423,7 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
         // Auto-adjust font size if wrapped text is too tall for bounding box
         const lineHeight = scaledFontSize * 1.2;
         const totalTextHeight = lines.length * lineHeight;
-        const boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+        const boxHeightScaled = captionData.box.height;
         
         if (totalTextHeight > boxHeightScaled - 4) { // Small 4px padding to stay within bounds
           // Reduce font size to fit
@@ -459,11 +453,11 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution) {
         const totalHeight = lines.length * lineHeight;
         
         // Match UI's positioning exactly: (height - totalHeight) / 2 + padding
-        // Get box dimensions (they should already be calculated above if we have a box)
+        // Get box dimensions (coordinates are already in output resolution)
         let boxYScaled, boxHeightScaled;
         if (captionData.box) {
-          boxYScaled = (captionData.box.y / videoResolution.width) * outputHeight;
-          boxHeightScaled = (captionData.box.height / videoResolution.width) * outputHeight;
+          boxYScaled = captionData.box.y;
+          boxHeightScaled = captionData.box.height;
         } else {
           // Fallback values if no box
           boxYScaled = 0;
@@ -567,7 +561,7 @@ async function exportClips(buffer, fileName, clips) {
   return { inputPath, clipPaths };
 }
 
-async function exportClipsWithEffects(buffer, fileName, clips, videoResolution) {
+async function exportClipsWithEffects(buffer, fileName, clips, videoResolution, outputResolution) {
   const outputDir = app.getPath('temp');
   const inputPath = writeBufferToFile(buffer, fileName, outputDir);
 
@@ -576,7 +570,7 @@ async function exportClipsWithEffects(buffer, fileName, clips, videoResolution) 
   for (let i = 0; i < clips.length; i++) {
     const clip = clips[i];
     const outPath = path.join(outputDir, `clip-effects-${i}.mp4`);
-    await cutClipWithEffects(inputPath, clip, outPath, videoResolution);
+    await cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputResolution);
     clipPaths.push(outPath);
   }
 

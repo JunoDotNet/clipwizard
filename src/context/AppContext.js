@@ -33,6 +33,27 @@ export const AppProvider = ({ children }) => {
   const [captionBrokenFromSharing, setCaptionBrokenFromSharingState] = useState(new Set());
   const [captionSharedGroups, setCaptionSharedGroupsState] = useState({});
 
+  // Output resolution system
+  const [outputFormat, setOutputFormat] = useState('9:16');
+  const [customResolution, setCustomResolution] = useState({ width: 1080, height: 1920 });
+
+  // Format presets
+  const formatPresets = {
+    '9:16': { name: 'Vertical (TikTok/Instagram)', width: 1080, height: 1920 },
+    '16:9': { name: 'Horizontal (YouTube)', width: 1920, height: 1080 },
+    '1:1': { name: 'Square (Instagram Post)', width: 1080, height: 1080 },
+    '4:5': { name: 'Portrait (Instagram)', width: 1080, height: 1350 },
+    'custom': { name: 'Custom', width: 1920, height: 1080 }
+  };
+
+  // Get current output resolution
+  const getOutputResolution = () => {
+    if (outputFormat === 'custom') {
+      return customResolution;
+    }
+    return formatPresets[outputFormat];
+  };
+
   // Load sceneSegments from localStorage if available
   const [sceneSegments, setSceneSegmentsState] = useState(() => {
     try {
@@ -117,6 +138,11 @@ export const AppProvider = ({ children }) => {
         captionBrokenFromSharing, setCaptionBrokenFromSharing,
         captionSharedGroups, setCaptionSharedGroups,
         clearCropData,
+        // Output resolution system
+        outputFormat, setOutputFormat,
+        customResolution, setCustomResolution,
+        formatPresets,
+        getOutputResolution,
       }}
     >
       {children}

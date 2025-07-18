@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import QueuePageBase from '../../components/QueuePageBase';
-import CaptionDrawingCanvas from '../../components/caption/CaptionDrawingCanvas';
+import OutputCanvas from '../../components/shared/OutputCanvas';
 import CaptionLayerPanel from '../../components/caption/CaptionLayerPanel';
 
 const CaptionPage = () => {
@@ -61,17 +61,16 @@ const CaptionPage = () => {
               preload="metadata"
             />
           )}
-          <CaptionDrawingCanvas
+          <OutputCanvas
             videoRef={videoRef}
             displaySize={displayFrameSize}
             videoSize={videoSize}
             cropLayers={cropOverrides[currentItem?.id] || []}
-            layers={layersWithDynamicText}
+            captionLayers={layersWithDynamicText}
             onNewLayer={handleNewLayer}
             onUpdateLayers={handleUpdateLayers}
             initialText={currentItem?.text || ''} 
-            selectedLayerId={selectedLayerId}
-            setSelectedLayerId={setSelectedLayerId}
+            enableCaptionEditing={true}
           />
         </div>
         <CaptionLayerPanel

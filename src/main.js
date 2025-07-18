@@ -387,7 +387,7 @@ app.on('window-all-closed', () => {
   }
 });
 
-ipcMain.handle('export-single-cut-with-effects', async (event, buffer, fileName, clips, outputPath, videoResolution) => {
+ipcMain.handle('export-single-cut-with-effects', async (event, buffer, fileName, clips, outputPath, outputResolution) => {
     try {
       if (!outputPath) throw new Error('No output path provided.');
 
@@ -405,7 +405,7 @@ ipcMain.handle('export-single-cut-with-effects', async (event, buffer, fileName,
       );
 
       if (hasEffects) {
-        const { clipPaths } = await exportClipsWithEffects(buffer, fileName, adjustedClips, videoResolution);
+        const { clipPaths } = await exportClipsWithEffects(buffer, fileName, adjustedClips, outputResolution, outputResolution);
         await concatClips(clipPaths, outputPath);
       } else {
         // No effects, use standard export

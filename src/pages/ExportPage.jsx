@@ -16,6 +16,7 @@ const ExportPage = () => {
     activeTabId,
     cropOverrides,
     captionOverrides,
+    getOutputResolution
   } = useAppContext();
 
   const [exportTypes, setExportTypes] = useState({
@@ -154,7 +155,7 @@ const ExportPage = () => {
               selectedFile.name, 
               enrichedClips, 
               mp4Path, 
-              videoResolution
+              getOutputResolution()
             );
           } else {
             // Fallback to basic export without effects
@@ -171,7 +172,7 @@ const ExportPage = () => {
           tab.clips,
           selectedFile.path || selectedFile,
           safeName,
-          videoResolution // use detected resolution
+          getOutputResolution() // use selected output resolution
         );
         const xmlPath = `${exportPath}/${safeName}.xml`;
         await window.electronAPI.saveXmlToPath(xmlPath, xml);

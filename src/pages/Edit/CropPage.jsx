@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import VideoCanvas from '../../components/crop/VideoCanvas';
-import VerticalCanvas from '../../components/crop/VerticalCanvas';
+import OutputCanvas from '../../components/shared/OutputCanvas';
 import QueuePageBase from '../../components/QueuePageBase';
 
 const CropPage = () => {
   const {
     sharedCropLayers, setSharedCropLayers,
-    cropOverrides, setCropOverrides
+    cropOverrides, setCropOverrides,
+    captionOverrides
   } = useAppContext();
 
   const [layers, setLayers] = useState([]);
@@ -23,7 +24,7 @@ const CropPage = () => {
     console.log('🎨 Crop data changed:', data);
   }, []);
 
-  const renderCropEditor = ({ videoRef, videoSrc, videoSize, displayVideoSize, displayFrameSize }) => (
+  const renderCropEditor = ({ videoRef, videoSrc, videoSize, displayVideoSize, displayFrameSize, currentItem }) => (
     <div style={{ display: 'flex', gap: 40 }}>
       <VideoCanvas
         videoPath={videoSrc}
@@ -37,12 +38,15 @@ const CropPage = () => {
         editingIndex={editingIndex}
         setEditingIndex={setEditingIndex}
       />
-      <VerticalCanvas
-        canvasSize={videoSize}
-        displaySize={displayFrameSize}
-        layers={layers}
+      <OutputCanvas
         videoRef={videoRef}
+        displaySize={displayFrameSize}
+        videoSize={videoSize}
+        cropLayers={layers}
+        captionLayers={captionOverrides[currentItem?.id] || []}
         activeCrop={editingCrop}
+        enableCaptionEditing={false}
+        showResolutionSelector={true}
       />
     </div>
   );
