@@ -51,24 +51,32 @@ const useClipPlayback = (videoRef) => {
 
       const { adjustedStart, adjustedEnd } = offsetClips[index];
 
+      video.pause();
       video.currentTime = adjustedStart;
-      video.play().catch((err) => {
-        console.warn('⚠️ video.play() error (often safe to ignore):', err.message);
-      });
 
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
 
-      const onTimeUpdate = () => {
-        if (video.currentTime >= adjustedEnd) {
-          video.pause();
-          video.removeEventListener('timeupdate', onTimeUpdate);
-          index++;
-          playNext();
-        }
+        video.play().catch((err) => {
+          if (err.name !== 'AbortError') {
+            console.warn('⚠️ video.play() error:', err.message);
+          }
+        });
+
+        const onTimeUpdate = () => {
+          if (video.currentTime >= adjustedEnd) {
+            video.pause();
+            video.removeEventListener('timeupdate', onTimeUpdate);
+            index++;
+            playNext();
+          }
+        };
+
+        video.addEventListener('timeupdate', onTimeUpdate);
       };
 
-      video.addEventListener('timeupdate', onTimeUpdate);
+      video.addEventListener('seeked', onSeeked);
     };
-
     playNext();
   }, [videoRef]);
 

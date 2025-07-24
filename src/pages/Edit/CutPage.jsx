@@ -251,15 +251,17 @@ const CutPage = () => {
           </div>
 
           <div style={{ display: 'flex', flex: 1, gap: 20 }}>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <h4>🎙 Transcript</h4>
-              {filteredTranscript.map(line => (
-                <TranscriptDragSource
-                  key={line.id}
-                  line={line}
-                  alreadyAddedIds={activeTab?.clips.map(c => c.originalId || c.id) || []}
-                />
-              ))}
+            <div style={{ flex: 1, maxHeight: 400, overflowY: 'auto', border: '1px solid #ccc', padding: 6, borderRadius: 4 }}>
+              <h4 style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1, margin: 0 }}>🎙 Transcript</h4>
+              <div style={{ marginTop: 8 }}>
+                {filteredTranscript.map(line => (
+                  <TranscriptDragSource
+                    key={line.id}
+                    line={line}
+                    alreadyAddedIds={activeTab?.clips.map(c => c.originalId || c.id) || []}
+                  />
+                ))}
+              </div>
             </div>
 
             <div style={{ flex: 1, overflow: 'hidden' }}>

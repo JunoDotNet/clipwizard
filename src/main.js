@@ -73,7 +73,7 @@ app.whenReady().then(() => {
     const outputJsonPath = path.join(outputDir, `${baseName}.json`);
 
     const whisperExe = path.join(app.getAppPath(), 'src', 'whisper', 'whisper.exe');
-    const modelPath  = path.join(app.getAppPath(), 'src', 'whisper', 'ggml-base.en.bin');
+    const modelPath = path.join(app.getAppPath(), 'src', 'whisper', 'ggml-medium.en.bin');
 
     try {
       let finalWavPath = wavPath;

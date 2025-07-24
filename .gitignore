@@ -102,3 +102,4 @@ release/
 src/whisper/ffmpeg.exe
 src/whisper/whisper.exe
 src/whisper/ggml-base.en.bin
+src/whisper/ggml-medium.en.bin
