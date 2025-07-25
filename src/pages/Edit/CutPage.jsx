@@ -9,7 +9,7 @@ import TranscriptDragSource from '../../components/TranscriptDragSource';
 import DropZone from '../../components/DropZone';
 import { arrayMove } from '@dnd-kit/sortable'; 
 import { v4 as uuidv4 } from 'uuid';
-import ClipWaveformEditor from '../../components/ClipWaveFormEditor';
+import WaveformPlayer from '../../components/WaveformPlayer';
 
 const CutPage = () => {
   const videoRef = useRef();
@@ -200,12 +200,13 @@ const CutPage = () => {
             contain: 'layout paint',
           }}
         >
-          <ClipWaveformEditor
+          <WaveformPlayer
             clips={activeTab?.clips && activeTab.clips.length > 0 ? activeTab.clips : transcript}
             videoRef={videoRef}
             updateClipOffset={updateClipOffset}
             selectedClip={selectedClip}
-            wavUrl={wavPath}
+            editable={true}
+            title="🎛️ Fine-Tune Clip (Waveform)"
           />
         </div>
       </div>

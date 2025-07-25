@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/plugins/regions';
 import TimelinePlugin from 'wavesurfer.js/plugins/timeline';
@@ -9,8 +9,15 @@ const formatTime = (seconds) =>
     .map((v) => `0${Math.floor(v)}`.slice(-2))
     .join(':');
 
-const WaveformPlayer = ({ clips, updateClipOffset, selectedClip, videoRef }) => {
-  const { wavPath, highlightLabels, highlightedSections } = useAppContext(); // Access highlightLabels from context
+const WaveformPlayer = ({ 
+  clips, 
+  updateClipOffset, 
+  selectedClip, 
+  videoRef,
+  editable = false, // New prop to control if regions are editable
+  title = "🎛️ Waveform Player" // Customizable title
+}) => {
+  const { wavPath, highlightLabels, highlightedSections } = useAppContext();
   const containerRef = useRef(null);
   const timelineContainerRef = useRef(null);
   const wavesurferRef = useRef(null);
@@ -22,7 +29,10 @@ const WaveformPlayer = ({ clips, updateClipOffset, selectedClip, videoRef }) => 
   useEffect(() => {
     console.log('WaveformPlayer clips:', clips);
     setAudioLoaded(false);
-    if (!clips?.length || !wavPath) return; // Ensure wavPath is available
+    if (!clips?.length || !wavPath || !containerRef.current || !timelineContainerRef.current) {
+      console.log('WaveformPlayer: Missing required elements or data');
+      return;
+    }
 
     let restoreTime = 0;
     const prevWS = wavesurferRef.current;
@@ -51,60 +61,132 @@ const WaveformPlayer = ({ clips, updateClipOffset, selectedClip, videoRef }) => 
     timelinePluginRef.current = ws.registerPlugin(timeline);
     wavesurferRef.current = ws;
 
+    // Force timeline update on scroll (useful for editable mode)
+    const scrollEl = containerRef.current;
+    const handleScroll = () => {
+      timelinePluginRef.current?.updateCanvas?.();
+    };
+    scrollEl?.addEventListener('scroll', handleScroll);
+
     // Load audio from wavPath (from AppContext) using electronAPI to get a Blob URL
     window.electronAPI.readFileAsBlob(wavPath).then((arrayBuffer) => {
       const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
       const blobUrl = URL.createObjectURL(blob);
       ws.load(blobUrl);
+    }).catch(error => {
+      console.error('Error loading audio:', error);
     });
 
     ws.on('decode', () => {
       setAudioLoaded(true);
+      
+      // Restore time if available
+      if (restoreTime) {
+        ws.once('redraw', () => {
+          ws.setTime(Math.min(restoreTime, ws.getDuration() - 0.1));
+        });
+      }
+      
+      // Get duration and adjust timeline intervals based on audio length
+      const duration = ws.getDuration();
+      
+      // Dynamically adjust timeline intervals based on duration
+      let timeInterval, primaryLabelInterval;
+      if (duration > 3600) { // > 1 hour
+        timeInterval = 60; // 1 minute intervals
+        primaryLabelInterval = 300; // 5 minute primary labels
+      } else if (duration > 1800) { // > 30 minutes
+        timeInterval = 30; // 30 second intervals
+        primaryLabelInterval = 120; // 2 minute primary labels
+      } else if (duration > 600) { // > 10 minutes
+        timeInterval = 15; // 15 second intervals
+        primaryLabelInterval = 60; // 1 minute primary labels
+      } else if (duration > 300) { // > 5 minutes
+        timeInterval = 10; // 10 second intervals
+        primaryLabelInterval = 30; // 30 second primary labels
+      } else {
+        timeInterval = 5; // 5 second intervals
+        primaryLabelInterval = 15; // 15 second primary labels
+      }
+      
+      // Update timeline with new intervals
+      if (timelinePluginRef.current) {
+        timelinePluginRef.current.destroy();
+      }
+      
+      const newTimeline = TimelinePlugin.create({
+        container: timelineContainerRef.current,
+        height: 20,
+        timeInterval: timeInterval,
+        primaryLabelInterval: primaryLabelInterval,
+        secondaryLabelInterval: timeInterval,
+      });
+      timelinePluginRef.current = ws.registerPlugin(newTimeline);
+      
       // Remove any existing regions
       regions.getRegions().forEach(r => r.remove());
+      
       // Add regions for each transcript segment (clip)
       if (clips && Array.isArray(clips)) {
-        let regionCount = 0;
         clips.forEach((clip, idx) => {
           if (typeof clip.start !== 'number' || typeof clip.end !== 'number' || clip.start >= clip.end) {
             console.warn(`Skipping invalid clip at idx ${idx}:`, clip);
             return;
           }
-          // Check if this region is highlighted
+
+          // Calculate start and end times (with offsets for editable mode)
+          const startTime = editable ? clip.start + (clip.startOffset || 0) : clip.start;
+          const endTime = editable ? clip.end + (clip.endOffset || 0) : clip.end;
+          
+          // Determine region color
           let regionColor = 'rgba(200,200,200,0.5)'; // base color: light grey
-          if (Array.isArray(highlightedSections)) {
+          
+          if (editable && clip.__highlightColor) {
+            // Use highlight color from clip if in editable mode
+            regionColor = clip.__highlightColor + '55';
+          } else if (!editable && Array.isArray(highlightedSections)) {
+            // Use highlighted sections if in read-only mode
             const match = highlightedSections.find(h =>
               h.startTime <= clip.start && h.endTime >= clip.end
             );
             if (match && match.color) {
-              regionColor = match.color + '55'; // semi-transparent highlight
+              regionColor = match.color + '55';
             }
           }
+
           const region = regions.addRegion({
             id: `clip-${clip.id ?? idx}`,
-            start: clip.start,
-            end: clip.end,
+            start: startTime,
+            end: endTime,
             color: regionColor,
-            drag: false,
-            resize: false,
+            drag: editable, // Only draggable in editable mode
+            resize: editable, // Only resizable in editable mode
           });
-          region.on('update-end', () => {
-            const newStartOffset = region.start - clip.start;
-            const newEndOffset = region.end - clip.end;
-            updateClipOffset?.(clip.id, 'startOffset', newStartOffset - (clip.startOffset || 0));
-            updateClipOffset?.(clip.id, 'endOffset', newEndOffset - (clip.endOffset || 0));
-          });
+
+          // Add update handler for editable mode
+          if (editable) {
+            region.on('update-end', () => {
+              const newStartOffset = region.start - clip.start;
+              const newEndOffset = region.end - clip.end;
+              updateClipOffset?.(clip.id, 'startOffset', newStartOffset - (clip.startOffset || 0));
+              updateClipOffset?.(clip.id, 'endOffset', newEndOffset - (clip.endOffset || 0));
+            });
+          }
         });
-        console.log('WaveformPlayer: regions created:', regionCount);
+        console.log('WaveformPlayer: regions created:', clips.length);
       }
-      const duration = ws.getDuration();
-      const containerWidth = containerRef.current.offsetWidth;
-      const autoZoom = containerWidth / duration;
-      ws.zoom(autoZoom);
-      setZoomLevel(autoZoom);
-      timelinePluginRef.current?.updateCanvas?.();
+      
+      // Auto-zoom to fit content
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const autoZoom = containerWidth / duration;
+        ws.zoom(autoZoom);
+        setZoomLevel(autoZoom);
+        timelinePluginRef.current?.updateCanvas?.();
+      }
     });
 
+    // Video sync logic
     if (videoRef?.current) {
         const video = videoRef.current;
 
@@ -136,19 +218,21 @@ const WaveformPlayer = ({ clips, updateClipOffset, selectedClip, videoRef }) => 
             video.removeEventListener('timeupdate', syncFromVideo);
             video.removeEventListener('timeupdate', trackVideoTime);
             ws.un('timeupdate', syncToVideo);
+            scrollEl?.removeEventListener('scroll', handleScroll);
         };
-        }
-
-
+    }
 
     ws.on('timeupdate', () => {
       setCurrentTime(ws.getCurrentTime());
     });
 
     return () => {
-      ws.destroy();
+      if (ws && typeof ws.destroy === 'function') {
+        ws.destroy();
+      }
+      scrollEl?.removeEventListener('scroll', handleScroll);
     };
-  }, [clips, wavPath, highlightLabels, highlightedSections]); // add highlightLabels and highlightedSections to dependencies
+  }, [clips, wavPath, editable, highlightedSections]);
 
   // Add a new effect to update zoom only when zoomLevel changes and audio is loaded
   useEffect(() => {
@@ -158,21 +242,60 @@ const WaveformPlayer = ({ clips, updateClipOffset, selectedClip, videoRef }) => 
     }
   }, [zoomLevel, audioLoaded]);
 
+  // Auto-pause at end of selected clip (for editable mode)
+  useEffect(() => {
+    if (!editable || !selectedClip || !videoRef?.current) return;
+    const video = videoRef.current;
+
+    const handleTimeUpdate = () => {
+      const end = selectedClip.end + (selectedClip.endOffset || 0);
+      if (video.currentTime >= end) {
+        video.pause();
+      }
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [editable, selectedClip, videoRef]);
+
+  // Additional video sync for editable mode
+  useEffect(() => {
+    if (!editable) return;
+    
+    const video = videoRef?.current || document.querySelector('video');
+    const interval = setInterval(() => {
+      if (video && !video.paused && wavesurferRef.current) {
+        wavesurferRef.current.setTime(video.currentTime);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [editable, videoRef]);
+
   const changeZoom = (delta) => {
-    if (!audioLoaded) return;
-    const next = Math.max(0.1, Math.min(1000, zoomLevel + delta));
-    setZoomLevel(next);
-    wavesurferRef.current?.zoom(next);
-    timelinePluginRef.current?.updateCanvas?.();
+    if (!audioLoaded || !wavesurferRef.current) {
+      console.log('Cannot zoom: audio not loaded or wavesurfer not initialized');
+      return;
+    }
+    try {
+      const next = Math.max(0.1, Math.min(1000, zoomLevel + delta));
+      setZoomLevel(next);
+      wavesurferRef.current.zoom(next);
+      timelinePluginRef.current?.updateCanvas?.();
+    } catch (error) {
+      console.error('Error during zoom:', error);
+    }
   };
+
+  if (!clips?.length) return null;
 
   return (
     <div style={{ padding: 10 }}>
-      <h4>🎛️ Waveform Player</h4>
+      <h4>{title}</h4>
       <div
         ref={containerRef}
         style={{
           width: '100%',
+          height: 100,
           marginBottom: 0,
           border: '1px solid #ccc',
           background: '#f6f6f6',
@@ -182,10 +305,22 @@ const WaveformPlayer = ({ clips, updateClipOffset, selectedClip, videoRef }) => 
       />
       <div ref={timelineContainerRef} style={{ height: 20, marginBottom: 10 }} />
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button onClick={() => changeZoom(-20)} disabled={!audioLoaded}>➖</button>
-        <button onClick={() => changeZoom(20)} disabled={!audioLoaded}>➕</button>
+        <button 
+          onClick={() => changeZoom(-20)} 
+          disabled={!audioLoaded || !wavesurferRef.current}
+        >
+          ➖
+        </button>
+        <button 
+          onClick={() => changeZoom(20)} 
+          disabled={!audioLoaded || !wavesurferRef.current}
+        >
+          ➕
+        </button>
         <span>Zoom: {Math.round(zoomLevel)}px/s</span>
         <span>🕒 {formatTime(currentTime)}</span>
+        {!audioLoaded && <span style={{ color: '#666' }}>Loading audio...</span>}
+        {editable && <span style={{ color: '#666', marginLeft: 10 }}>✏️ Drag regions to adjust timing</span>}
       </div>
     </div>
   );
