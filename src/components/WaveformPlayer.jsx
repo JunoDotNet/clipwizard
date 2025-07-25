@@ -78,6 +78,7 @@ const WaveformPlayer = ({
     });
 
     ws.on('decode', () => {
+      ws.isReady = true; 
       setAudioLoaded(true);
       
       // Restore time if available
@@ -180,9 +181,17 @@ const WaveformPlayer = ({
       if (containerRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         const autoZoom = containerWidth / duration;
-        ws.zoom(autoZoom);
-        setZoomLevel(autoZoom);
-        timelinePluginRef.current?.updateCanvas?.();
+        try {
+          if (ws.isReady) {
+            ws.zoom(autoZoom);
+            setZoomLevel(autoZoom);
+            timelinePluginRef.current?.updateCanvas?.();
+          } else {
+            console.warn('⏳ Skipping autoZoom — audio not ready yet');
+          }
+        } catch (error) {
+          console.error('Error during auto-zoom:', error);
+        }
       }
     });
 
@@ -236,9 +245,13 @@ const WaveformPlayer = ({
 
   // Add a new effect to update zoom only when zoomLevel changes and audio is loaded
   useEffect(() => {
-    if (audioLoaded && wavesurferRef.current) {
-      wavesurferRef.current.zoom(zoomLevel);
-      timelinePluginRef.current?.updateCanvas?.();
+    if (audioLoaded && wavesurferRef.current && wavesurferRef.current.isReady) {
+      try {
+        wavesurferRef.current.zoom(zoomLevel);
+        timelinePluginRef.current?.updateCanvas?.();
+      } catch (error) {
+        console.error('Error during zoom in effect:', error);
+      }
     }
   }, [zoomLevel, audioLoaded]);
 

@@ -45,17 +45,18 @@ const ImportPage = () => {
         return parts.length === 3 ? (+parts[0]) * 3600 + (+parts[1]) * 60 + (+parts[2]) : 0;
       };
 
-      // First, parse all segments with start
+      // First, parse all segments with start and end from timestamps
       const raw = (transcription.transcription || []).map((seg, i) => ({
         ...seg,
         id: i,
         start: parse(seg.timestamps?.from),
+        end: seg.timestamps?.to ? parse(seg.timestamps.to) : null,
       }));
 
-      // Then, add end to each segment
+      // Then, fill in missing end times using next segment's start as fallback
       const parsed = raw.map((seg, i, arr) => ({
         ...seg,
-        end: arr[i + 1] ? arr[i + 1].start : (seg.start + 3), // fallback: +3s for last
+        end: seg.end || (arr[i + 1] ? arr[i + 1].start : (seg.start + 3)), // Use Whisper's actual end time first, fallback to next start or +3s
       }));
 
       setTranscript(parsed);
