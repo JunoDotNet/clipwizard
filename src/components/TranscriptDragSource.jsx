@@ -8,6 +8,7 @@ const TranscriptDragSource = ({ line, alreadyAddedIds = [], isOverlay = false })
     disabled: isOverlay,
   });
 
+  const isUsed = alreadyAddedIds.includes(line.id) || (line.originalId && alreadyAddedIds.includes(line.originalId));
   const style = {
     transform: transform && !isOverlay
       ? `translate(${transform.x}px, ${transform.y}px)`
@@ -21,7 +22,7 @@ const TranscriptDragSource = ({ line, alreadyAddedIds = [], isOverlay = false })
     pointerEvents: 'auto',
     zIndex: isOverlay ? 9999 : 'auto',
     boxShadow: isOverlay ? '0 4px 12px rgba(0,0,0,0.2)' : undefined,
-    opacity: alreadyAddedIds.includes(line.id) || alreadyAddedIds.includes(line.originalId) ? 0.4 : 1,
+    opacity: isUsed ? 0.4 : 1,
   };
 
   return (

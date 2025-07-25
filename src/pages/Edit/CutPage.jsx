@@ -259,7 +259,7 @@ const CutPage = () => {
                   <TranscriptDragSource
                     key={line.id}
                     line={line}
-                    alreadyAddedIds={activeTab?.clips.map(c => c.originalId || c.id) || []}
+                    alreadyAddedIds={activeTab?.clips.map(c => c.originalId) || []}
                   />
                 ))}
               </div>
