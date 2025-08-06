@@ -174,7 +174,7 @@ app.whenReady().then(() => {
     return path;
   });
 
-  ipcMain.handle('export-clips', async (event, buffer, fileName, rawClips) => {
+  ipcMain.handle('export-clips', async (event, inputPath, fileName, rawClips) => {
     try {
       const { canceled, filePath } = await dialog.showSaveDialog({
         title: 'Save Final Video',
@@ -190,7 +190,7 @@ app.whenReady().then(() => {
         adjustedEnd: c.end + (c.endOffset || 0),
       }));
 
-      const { clipPaths } = await exportClips(buffer, fileName, clips);
+      const { clipPaths } = await exportClips(inputPath, fileName, clips);
       await concatClips(clipPaths, filePath);
 
       return filePath;
@@ -200,7 +200,7 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle('export-single-cut', async (event, buffer, fileName, clips, outputPath) => {
+  ipcMain.handle('export-single-cut', async (event, inputPath, fileName, clips, outputPath) => {
     try {
       if (!outputPath) throw new Error('No output path provided.');
 
@@ -209,7 +209,7 @@ app.whenReady().then(() => {
         adjustedEnd: c.end + (c.endOffset || 0),
       }));
 
-      const { clipPaths } = await exportClips(buffer, fileName, adjustedClips);
+      const { clipPaths } = await exportClips(inputPath, fileName, adjustedClips);
       await concatClips(clipPaths, outputPath);
 
       return outputPath;
@@ -285,8 +285,11 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('read-video-buffer', async (_, filePath) => {
-    const buffer = fs.readFileSync(filePath);
-    return buffer;
+    // Instead of reading the whole file, return the path and let ffmpeg handle streaming
+    if (!fs.existsSync(filePath)) {
+      throw new Error('Video file not found');
+    }
+    return filePath;
   });
 
   ipcMain.handle('save-xml-file', async (event, defaultFileName, xmlContent) => {
@@ -387,9 +390,10 @@ app.on('window-all-closed', () => {
   }
 });
 
-ipcMain.handle('export-single-cut-with-effects', async (event, buffer, fileName, clips, outputPath, outputResolution) => {
+ipcMain.handle('export-single-cut-with-effects', async (event, inputPath, fileName, clips, outputPath, outputResolution) => {
     try {
       if (!outputPath) throw new Error('No output path provided.');
+      if (!fs.existsSync(inputPath)) throw new Error('Input video file not found');
 
       const adjustedClips = clips.map(c => ({
         adjustedStart: c.start + (c.startOffset || 0),
@@ -405,11 +409,11 @@ ipcMain.handle('export-single-cut-with-effects', async (event, buffer, fileName,
       );
 
       if (hasEffects) {
-        const { clipPaths } = await exportClipsWithEffects(buffer, fileName, adjustedClips, outputResolution, outputResolution);
+        const { clipPaths } = await exportClipsWithEffects(inputPath, fileName, adjustedClips, outputResolution, outputResolution);
         await concatClips(clipPaths, outputPath);
       } else {
         // No effects, use standard export
-        const { clipPaths } = await exportClips(buffer, fileName, adjustedClips);
+        const { clipPaths } = await exportClips(inputPath, fileName, adjustedClips);
         await concatClips(clipPaths, outputPath);
       }
 

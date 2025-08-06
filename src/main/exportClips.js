@@ -7,11 +7,12 @@ const { app } = require('electron');
 const { v4: uuidv4 } = require('uuid');
 const ffmpeg = require('fluent-ffmpeg');
 
-function writeBufferToFile(buffer, fileName, outputDir) {
-  const ext = path.extname(fileName);
-  const inputPath = path.join(outputDir, `input-${uuidv4()}${ext}`);
-  fs.writeFileSync(inputPath, buffer);
-  return inputPath;
+// No longer needed since we're using direct file paths
+function getInputPath(filePath) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error('Input file not found: ' + filePath);
+  }
+  return filePath;
 }
 
 function cutClip(inputPath, start, duration, outPath) {
@@ -50,6 +51,16 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
   return new Promise((resolve, reject) => {
     const { adjustedStart, adjustedEnd, cropData = [], captionData = {} } = clip;
     const duration = Math.max(0, adjustedEnd - adjustedStart);
+    
+    console.log('🎥 Starting clip processing:', {
+      inputPath,
+      outPath,
+      duration,
+      videoResolution,
+      outputResolution,
+      cropData: cropData.length,
+      hasCaption: !!captionData.text
+    });
     
     let command = ffmpeg(inputPath)
       .setStartTime(adjustedStart)
@@ -109,12 +120,25 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
         const { x, y, width, height } = layer.crop;
         const { scale = 1, rotate = 0, x: offsetX = 0, y: offsetY = 0 } = layer.transform || {};
         
-        console.log(`🧩 Processing layer ${index}:`, { zIndex: layer.zIndex || 0, rotate, scale, crop: { x, y, width, height } });
+        console.log(`🧩 Processing layer ${index}:`, { 
+          zIndex: layer.zIndex || 0, 
+          rotate, 
+          scale, 
+          crop: { x, y, width, height },
+          transform: { offsetX, offsetY },
+          outputDimensions: `${outputWidth}x${outputHeight}`
+        });
         
         // For each layer, start from the original video input
         let layerStream = '[0:v]';
         
-        // Crop this specific region from the original video
+        // Scale input video if needed to match output resolution
+        if (videoResolution.width !== outputWidth || videoResolution.height !== outputHeight) {
+          filterComplex.push(`${layerStream}scale=${outputWidth}:${outputHeight}[scaled${index}]`);
+          layerStream = `[scaled${index}]`;
+        }
+        
+        // Crop this specific region from the video
         filterComplex.push(`${layerStream}crop=${width}:${height}:${x}:${y}[crop${index}]`);
         layerStream = `[crop${index}]`;
         
@@ -268,51 +292,8 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
         });
       }
       
-      let fontParam = '';
-      if (fontFamily === 'custom' || customFontPath || customFontName) {
-        if (customFontPath) {
-          // Use custom font file path - this is the most reliable method for .otf/.ttf files
-          const normalizedPath = customFontPath.replace(/\\/g, '/');
-          
-          // Check if the font file exists and is accessible
-          if (fs.existsSync(customFontPath)) {
-            fontParam = `fontfile='${normalizedPath}':`;
-            console.log('🎨 Using custom font file (verified exists):', customFontPath);
-          } else {
-            console.warn('🚨 Custom font file not found:', customFontPath);
-            // Try using font name as fallback
-            if (customFontName) {
-              fontParam = `font='${customFontName}':`;
-              console.log('🎨 Font file not found, using custom font name:', customFontName);
-            } else {
-              fontParam = `font='Arial':`;
-              console.log('🎨 Font file not found and no name, falling back to Arial');
-            }
-          }
-        } else if (customFontName) {
-          // Use custom font name that was loaded via FontFace API
-          // Try to detect if this is a custom uploaded font (like "Custom_gastro")
-          let actualFontName = customFontName;
-          if (customFontName.startsWith('Custom_')) {
-            // Extract the original font name and try both versions
-            const originalName = customFontName.replace('Custom_', '');
-            console.log('🎨 Detected uploaded font, trying original name:', originalName);
-            actualFontName = originalName;
-          }
-          
-          fontParam = `font='${actualFontName}':`;
-          console.log('🎨 Using custom font name:', actualFontName);
-        } else {
-          // Fallback to Arial if custom font info is missing
-          fontParam = `font='Arial':`;
-          console.log('🎨 Custom font requested but no path/name provided, falling back to Arial');
-        }
-      } else {
-        // Use system font
-        const systemFont = fontFamily.replace(/\s+/g, '');
-        fontParam = `font='${systemFont}':`;
-        console.log('🎨 Using system font:', systemFont);
-      }
+      // Simplify font handling - just use Arial
+      console.log('🎨 Using default Arial font');
       
       // Convert hex color to ffmpeg format (remove #)
       const ffmpegColor = fontColor.replace('#', '');
@@ -442,13 +423,33 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
         }
       }
       if (lines.length === 1) {
-        // Single line - remove stroke to match UI
-        filterComplex.push(
-          `${currentStream}drawtext=text='${lines[0]}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=${textX}:y=${textY}[captioned]`
-        );
+        // Use the exact box coordinates for single line text
+        const escapedText = lines[0].replace(/'/g, "'\\''");
+        
+        // Calculate exact position from the box
+        let x = textX;
+        let y = textY;
+        
+        // If we have a box, use its exact coordinates
+        if (captionData.box) {
+          // Use the calculated textX and textY which already account for alignment
+          x = textX;
+          y = Math.round(captionData.box.y + (captionData.box.height - scaledFontSize) / 2);
+        }
+        
+        const drawTextFilter = `${currentStream}drawtext=` +
+          `text='${escapedText}':` +
+          `fontsize=${scaledFontSize}:` +
+          `fontcolor=${ffmpegColor}:` +
+          `x=${x}:y=${y}:` +
+          `font=Arial` +
+          '[captioned]';
+        
+        console.log('📝 Generated drawtext filter:', drawTextFilter);
+        filterComplex.push(drawTextFilter);
         currentStream = '[captioned]';
       } else {
-        // Multi-line - create overlay for each line without stroke
+        // Multi-line handling
         const lineHeight = Math.round(scaledFontSize * 1.2);
         const totalHeight = lines.length * lineHeight;
         
@@ -478,13 +479,24 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
         });
         
         lines.forEach((line, index) => {
-          const escapedLine = line.replace(/'/g, "\\'"); // Escape single quotes for each line
+          // Use exact box coordinates for multi-line text
+          const escapedLine = line.replace(/'/g, "'\\''");
+          
+          // Calculate y position for each line within the box
           const y = startY + (index * lineHeight);
           const outputLabel = index === lines.length - 1 ? 'captioned' : `line${index}`;
           
-          filterComplex.push(
-            `${currentStream}drawtext=text='${escapedLine}':fontcolor=${ffmpegColor}:fontsize=${scaledFontSize}:${fontParam}x=${textX}:y=${y}[${outputLabel}]`
-          );
+          // Use textX which already accounts for alignment
+          const drawTextFilter = `${currentStream}drawtext=` +
+            `text='${escapedLine}':` +
+            `fontsize=${scaledFontSize}:` +
+            `fontcolor=${ffmpegColor}:` +
+            `x=${textX}:y=${y}:` +
+            `font=Arial` +
+            `[${outputLabel}]`;
+          
+          console.log(`📝 Generated drawtext filter for line ${index}:`, drawTextFilter);
+          filterComplex.push(drawTextFilter);
           currentStream = `[${outputLabel}]`;
         });
       }
@@ -544,32 +556,46 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
   });
 }
 
-async function exportClips(buffer, fileName, clips) {
+async function exportClips(videoPath, fileName, clips) {
   const outputDir = app.getPath('temp');
-  const inputPath = writeBufferToFile(buffer, fileName, outputDir);
-
   const clipPaths = [];
 
   for (let i = 0; i < clips.length; i++) {
     const { adjustedStart, adjustedEnd } = clips[i];
     const duration = Math.max(0, adjustedEnd - adjustedStart);
     const outPath = path.join(outputDir, `clip-${i}.mp4`);
-    await cutClip(inputPath, adjustedStart, duration, outPath);
+    // Use the video path directly instead of writing to temp file
+    await cutClip(videoPath, adjustedStart, duration, outPath);
     clipPaths.push(outPath);
   }
 
-  return { inputPath, clipPaths };
+  return { inputPath: videoPath, clipPaths };
 }
 
-async function exportClipsWithEffects(buffer, fileName, clips, videoResolution, outputResolution) {
+async function exportClipsWithEffects(inputPath, fileName, clips, videoResolution, outputResolution) {
   const outputDir = app.getPath('temp');
-  const inputPath = writeBufferToFile(buffer, fileName, outputDir);
+  // Verify input path exists
+  if (!fs.existsSync(inputPath)) {
+    throw new Error('Input video file not found: ' + inputPath);
+  }
 
   const clipPaths = [];
 
   for (let i = 0; i < clips.length; i++) {
     const clip = clips[i];
     const outPath = path.join(outputDir, `clip-effects-${i}.mp4`);
+    console.log('🎬 Processing clip with effects:', {
+      clipIndex: i,
+      inputPath,
+      outPath,
+      resolution: outputResolution,
+      clip: {
+        start: clip.adjustedStart,
+        end: clip.adjustedEnd,
+        hasCrops: clip.cropData?.length > 0,
+        hasCaption: !!clip.captionData?.text
+      }
+    });
     await cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputResolution);
     clipPaths.push(outPath);
   }

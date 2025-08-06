@@ -6,6 +6,12 @@ import useClipPlayback from '../hooks/useClipPlayback';
 import SelectedCutList from '../components/SelectedCutList';
 import exportToPremiereXml from '../utils/exportToPremiereXml';
 
+// Use the browser-compatible path API for path operations
+const path = window.require ? window.require('path') : {
+  join: (...args) => args.join('/').replace(/\/+/g, '/'),
+  basename: (path) => path.split('/').pop(),
+};
+
 const ExportPage = () => {
   const {
     selectedFile,
@@ -67,8 +73,9 @@ const ExportPage = () => {
   const handleExportAll = async () => {
     if (!exportPath) return alert('❗ Please choose an export folder.');
     if (filteredTabs.length === 0) return alert('❗ No cut tabs selected.');
+    if (!selectedFile) return alert('❗ No video file selected.');
 
-    const buffer = await window.electronAPI.readVideoBuffer(selectedFile.path || selectedFile);
+    const inputVideoPath = selectedFile.path || selectedFile;
     setExportProgress({ current: 0, total: filteredTabs.length });
     setIsExporting(true);
     setCancelRequested(false);
@@ -85,7 +92,9 @@ const ExportPage = () => {
       setExportProgress(prev => ({ ...prev, current: i }));
 
       if (exportTypes.mp4) {
-        const mp4Path = `${exportPath}/${safeName}.mp4`;
+        // Create file path in a cross-platform way
+        const mp4Path = path.join(exportPath, `${safeName}.mp4`);
+        console.log('📁 Exporting to:', mp4Path);
         
         // Get crop and caption data for this tab's clips
         const enrichedClips = tab.clips.map((clip, index) => {
@@ -153,9 +162,10 @@ const ExportPage = () => {
         
         // Try new export function with effects, fallback to basic export
         try {
+          const inputVideoPath = selectedFile.path || selectedFile;
           if (window.electronAPI.exportSingleCutWithEffects) {
             await window.electronAPI.exportSingleCutWithEffects(
-              buffer, 
+              inputVideoPath,
               selectedFile.name, 
               enrichedClips, 
               mp4Path, 
@@ -163,11 +173,11 @@ const ExportPage = () => {
             );
           } else {
             // Fallback to basic export without effects
-            await window.electronAPI.exportSingleCut(buffer, selectedFile.name, tab.clips, mp4Path);
+            await window.electronAPI.exportSingleCut(inputVideoPath, selectedFile.name, tab.clips, mp4Path);
           }
         } catch (err) {
           console.warn('Advanced export failed, falling back to basic export:', err);
-          await window.electronAPI.exportSingleCut(buffer, selectedFile.name, tab.clips, mp4Path);
+          await window.electronAPI.exportSingleCut(inputVideoPath, selectedFile.name, tab.clips, mp4Path);
         }
       }
 
