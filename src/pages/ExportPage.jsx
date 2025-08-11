@@ -92,55 +92,46 @@ const ExportPage = () => {
           const clipId = `${tab.id}-clip-${index}`;
           const captionLayers = captionOverrides[clipId] || [];
           
-          // Convert caption layers array to single caption object for backend
-          // Backend expects: { text, fontSize, fontFamily, fontColor, customFontPath, textAlign }
+          // Send all caption layers to backend for multi-caption support
           let captionData = {};
           if (Array.isArray(captionLayers) && captionLayers.length > 0) {
-            // Use the first visible caption layer
-            const activeLayer = captionLayers.find(layer => !layer.hidden) || captionLayers[0];
-            if (activeLayer && (clip.text || activeLayer.text)) {
-              // Extract custom font information from fontFamily if it starts with "Custom_"
-              let customFontName = activeLayer.customFontName;
-              let customFontPath = activeLayer.customFontPath;
-              
-              // If fontFamily is "Custom_X", extract the font name
-              if (activeLayer.fontFamily && activeLayer.fontFamily.startsWith('Custom_')) {
-                const extractedFontName = activeLayer.fontFamily.replace('Custom_', '');
-                console.log('🎨 Detected custom font in export:', { 
-                  originalFontFamily: activeLayer.fontFamily, 
-                  extractedName: extractedFontName,
-                  hasCustomFontName: !!customFontName,
-                  hasCustomFontPath: !!customFontPath
-                });
-                
-                // Use extracted name if we don't have explicit customFontName
-                if (!customFontName) {
-                  customFontName = extractedFontName;
-                }
+            // Map each layer to backend format
+            const mappedLayers = captionLayers.filter(layer => layer && (clip.text || layer.text)).map(layer => {
+              let customFontName = layer.customFontName;
+              let customFontPath = layer.customFontPath;
+              if (layer.fontFamily && layer.fontFamily.startsWith('Custom_')) {
+                const extractedFontName = layer.fontFamily.replace('Custom_', '');
+                if (!customFontName) customFontName = extractedFontName;
               }
-              
-              // Map UI layer properties to backend expected format
-              captionData = {
-                text: clip.text || activeLayer.text || '',
-                // Use layer's bounding box for auto-sizing calculation
-                box: activeLayer.box || { width: 400, height: 100 }, // fallback box size
-                fontFamily: activeLayer.fontFamily || 'Arial',
-                customFontName: customFontName, // For custom fonts - now properly extracted
-                color: activeLayer.color || '#ffffff', // UI uses 'color', backend expects 'fontColor'
-                fontColor: activeLayer.color || '#ffffff', // Backend compatibility
-                textAlign: activeLayer.textAlign || 'left', // Match CaptionLayerPanel default
-                customFontPath: customFontPath, // For custom font files
-                // Calculate fontSize based on box dimensions (similar to auto-sizing in UI)
-                fontSize: Math.max(16, Math.min(72, Math.floor(activeLayer.box?.height * 0.3) || 24))
+              return {
+                text: clip.text || layer.text || '',
+                box: layer.box || { width: 400, height: 100 },
+                fontFamily: layer.fontFamily || 'Arial',
+                customFontName,
+                color: layer.color || '#ffffff',
+                fontColor: layer.color || '#ffffff',
+                textAlign: layer.textAlign || 'left',
+                customFontPath,
+                fontSize: Math.max(16, Math.min(72, Math.floor(layer.box?.height * 0.3) || 24))
               };
+            });
+            captionData = { layers: mappedLayers };
+            // Debug: Log all layers
+            if (mappedLayers.length > 0) {
+              console.log(`📝 Export caption data for ${clipId}:`, JSON.stringify(captionData, null, 2));
             }
+          } else {
+            // Fallback to single caption object if no layers
+            captionData = {
+              text: clip.text || '',
+              box: { width: 400, height: 100 },
+              fontFamily: 'Arial',
+              color: '#ffffff',
+              fontColor: '#ffffff',
+              textAlign: 'left',
+              fontSize: 24
+            };
           }
-          
-          // Debug: Log what we're sending for captions
-          if (captionData.text && captionData.text.trim()) {
-            console.log(`📝 Export caption data for ${clipId}:`, JSON.stringify(captionData, null, 2));
-          }
-          
           return {
             ...clip,
             cropData: cropOverrides[clipId] || [],
