@@ -161,14 +161,8 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
         }
       });
     }
-    // If captions were rendered, label the last output as 'captioned' for mapping
+    // Always use the last label as the output for mapping
     let outputLabelForMap = currentStream;
-    if (captionRendered) {
-      // Remove brackets for label assignment
-      const lastLabel = currentStream.replace(/\[|\]/g, '');
-      filterComplex.push(`${currentStream}copy[captioned]`);
-      outputLabelForMap = '[captioned]';
-    }
 
     if (filterComplex.length > 0) {
       command = command
@@ -220,11 +214,11 @@ async function exportClipsUnified(inputPath, inputName, clips, outputResolution)
 function escapeForFfmpeg(text) {
   if (!text) return '';
   return text
-    .replace(/\\/g, '\\\\') // escape backslashes first
-    .replace(/'/g, "\\\\'") // escape single quotes
-    .replace(/:/g, '\\\\:') // escape colons
-    .replace(/,/g, '\\\\,') // escape commas
-    .replace(/=/g, '\\\\='); // escape equals (can break drawtext)
+    .replace(/'/g, '\u2019') // replace ASCII single quote with Unicode right single quote
+    .replace(/\\/g, '\\') // escape backslashes first
+    .replace(/:/g, '\:') // escape colons
+    .replace(/,/g, '\,') // escape commas
+    .replace(/=/g, '\='); // escape equals (can break drawtext)
 }
 
 // Concat helper
