@@ -68,7 +68,6 @@ const ExportPage = () => {
     if (!exportPath) return alert('❗ Please choose an export folder.');
     if (filteredTabs.length === 0) return alert('❗ No cut tabs selected.');
 
-    const buffer = await window.electronAPI.readVideoBuffer(selectedFile.path || selectedFile);
     setExportProgress({ current: 0, total: filteredTabs.length });
     setIsExporting(true);
     setCancelRequested(false);
@@ -86,12 +85,12 @@ const ExportPage = () => {
 
       if (exportTypes.mp4) {
         const mp4Path = `${exportPath}/${safeName}.mp4`;
-        
+
         // Get crop and caption data for this tab's clips
         const enrichedClips = tab.clips.map((clip, index) => {
           const clipId = `${tab.id}-clip-${index}`;
           const captionLayers = captionOverrides[clipId] || [];
-          
+
           // Send all caption layers to backend for multi-caption support
           let captionData = {};
           if (Array.isArray(captionLayers) && captionLayers.length > 0) {
@@ -138,27 +137,27 @@ const ExportPage = () => {
             captionData: captionData
           };
         });
-        
+
         // Debug: Log the enriched clips structure
         console.log('🚀 Exporting enriched clips:', JSON.stringify(enrichedClips, null, 2));
-        
+
         // Try new export function with effects, fallback to basic export
         try {
           if (window.electronAPI.exportSingleCutWithEffects) {
             await window.electronAPI.exportSingleCutWithEffects(
-              buffer, 
-              selectedFile.name, 
-              enrichedClips, 
-              mp4Path, 
+              selectedFile.path || selectedFile,
+              selectedFile.name,
+              enrichedClips,
+              mp4Path,
               getOutputResolution()
             );
           } else {
             // Fallback to basic export without effects
-            await window.electronAPI.exportSingleCut(buffer, selectedFile.name, tab.clips, mp4Path);
+            await window.electronAPI.exportSingleCut(selectedFile.path || selectedFile, selectedFile.name, tab.clips, mp4Path);
           }
         } catch (err) {
           console.warn('Advanced export failed, falling back to basic export:', err);
-          await window.electronAPI.exportSingleCut(buffer, selectedFile.name, tab.clips, mp4Path);
+          await window.electronAPI.exportSingleCut(selectedFile.path || selectedFile, selectedFile.name, tab.clips, mp4Path);
         }
       }
 

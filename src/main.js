@@ -174,51 +174,6 @@ app.whenReady().then(() => {
     return path;
   });
 
-  ipcMain.handle('export-clips', async (event, buffer, fileName, rawClips) => {
-    try {
-      const { canceled, filePath } = await dialog.showSaveDialog({
-        title: 'Save Final Video',
-        defaultPath: 'clipwizard-output.mp4',
-        filters: [{ name: 'Video', extensions: ['mp4'] }],
-      });
-
-      if (canceled || !filePath) return null;
-
-      // Convert offset data
-      const clips = rawClips.map(c => ({
-        adjustedStart: c.start + (c.startOffset || 0),
-        adjustedEnd: c.end + (c.endOffset || 0),
-      }));
-
-      const { clipPaths } = await exportClips(buffer, fileName, clips);
-      await concatClips(clipPaths, filePath);
-
-      return filePath;
-    } catch (err) {
-      console.error('❌ Export failed:', err);
-      throw err;
-    }
-  });
-
-  ipcMain.handle('export-single-cut', async (event, buffer, fileName, clips, outputPath) => {
-    try {
-      if (!outputPath) throw new Error('No output path provided.');
-
-      const adjustedClips = clips.map(c => ({
-        adjustedStart: c.start + (c.startOffset || 0),
-        adjustedEnd: c.end + (c.endOffset || 0),
-      }));
-
-      const { clipPaths } = await exportClips(buffer, fileName, adjustedClips);
-      await concatClips(clipPaths, outputPath);
-
-      return outputPath;
-    } catch (err) {
-      console.error('❌ export-single-cut failed:', err);
-      throw err;
-    }
-  });
-
   ipcMain.handle('show-save-dialog', async (_, options) => {
     console.log('📁 show-save-dialog called with:', options); // <--- ADD THIS
     const result = await dialog.showSaveDialog(options);
@@ -387,35 +342,42 @@ app.on('window-all-closed', () => {
   }
 });
 
-ipcMain.handle('export-single-cut-with-effects', async (event, buffer, fileName, clips, outputPath, outputResolution) => {
-    try {
-      if (!outputPath) throw new Error('No output path provided.');
+// SINGLE CUT (unified)
+ipcMain.handle('export-single-cut', async (event, inputPath, inputName, clips, outputPath) => {
+  try {
+    if (!outputPath) throw new Error('No output path provided.');
+    const adjusted = clips.map(c => ({
+      adjustedStart: c.start + (c.startOffset || 0),
+      adjustedEnd:   c.end   + (c.endOffset   || 0),
+      cropData: c.cropData || [],
+      captionData: c.captionData || {},
+    }));
+    const { exportClips, exportClipsWithEffects, concatClips } = require('./main/exportClips');
+    const { clipPaths } = await exportClips(inputPath, inputName, adjusted);
+    await concatClips(clipPaths, outputPath);
+    return outputPath;
+  } catch (err) {
+    console.error('❌ export-single-cut failed:', err);
+    throw err;
+  }
+});
 
-      const adjustedClips = clips.map(c => ({
-        adjustedStart: c.start + (c.startOffset || 0),
-        adjustedEnd: c.end + (c.endOffset || 0),
-        cropData: c.cropData || [],
-        captionData: c.captionData || {}
-      }));
-
-      // Check if any clips have effects that need special handling
-      const hasEffects = adjustedClips.some(clip => 
-        (clip.cropData && clip.cropData.length > 0) || 
-        (clip.captionData && clip.captionData.text && clip.captionData.text.trim())
-      );
-
-      if (hasEffects) {
-        const { clipPaths } = await exportClipsWithEffects(buffer, fileName, adjustedClips, outputResolution, outputResolution);
-        await concatClips(clipPaths, outputPath);
-      } else {
-        // No effects, use standard export
-        const { clipPaths } = await exportClips(buffer, fileName, adjustedClips);
-        await concatClips(clipPaths, outputPath);
-      }
-
-      return outputPath;
-    } catch (err) {
-      console.error('❌ export-single-cut-with-effects failed:', err);
-      throw err;
-    }
-  });
+// SINGLE CUT with output framing / effects (same unified function)
+ipcMain.handle('export-single-cut-with-effects', async (event, inputPath, inputName, clips, outputPath, outputResolution) => {
+  try {
+    if (!outputPath) throw new Error('No output path provided.');
+    const adjusted = clips.map(c => ({
+      adjustedStart: c.start + (c.startOffset || 0),
+      adjustedEnd:   c.end   + (c.endOffset   || 0),
+      cropData: c.cropData || [],
+      captionData: c.captionData || {},
+    }));
+    const { exportClipsUnified, concatClips } = require('./main/exportClips');
+    const { clipPaths } = await exportClipsUnified(inputPath, inputName, adjusted, outputResolution);
+    await concatClips(clipPaths, outputPath);
+    return outputPath;
+  } catch (err) {
+    console.error('❌ export-single-cut-with-effects failed:', err);
+    throw err;
+  }
+});
