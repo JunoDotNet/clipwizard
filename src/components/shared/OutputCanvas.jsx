@@ -80,13 +80,6 @@ const OutputCanvas = ({
       )
     );
   };
-  
-  // Selected layer
-  useEffect(() => {
-    if (!selectedLayerId && cropLayers.length > 0) {
-      setSelectedLayerId?.(cropLayers[cropLayers.length - 1].id);
-    }
-  }, [cropLayers, selectedLayerId, setSelectedLayerId]);
 
   // Load custom font when captionData changes
   useEffect(() => {

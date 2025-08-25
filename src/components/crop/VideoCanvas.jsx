@@ -10,6 +10,8 @@ const VideoCanvas = ({
   videoRef,
   layers,
   setLayers,
+  onSelect,
+  selectedId,
 }) => {
   const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = React.useState(false);
@@ -152,12 +154,23 @@ const VideoCanvas = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                padding: '2px 0',
+                padding: '4px 8px',
                 borderBottom: '1px solid #333',
                 opacity: layer.hidden ? 0.5 : 1,
+                background: selectedId === layer.id ? '#444' : 'transparent',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                margin: '2px 0'
               }}
+              onClick={() => onSelect?.(layer.id)}
             >
-              <span style={{ color: '#0f0', minWidth: 24 }}>#{i + 1}</span>
+              <span style={{ 
+                color: selectedId === layer.id ? '#0ff' : '#0f0', 
+                minWidth: 24,
+                fontWeight: selectedId === layer.id ? 'bold' : 'normal'
+              }}>
+                #{i + 1}
+              </span>
               <span style={{ fontFamily: 'monospace' }}>
                 x:{Math.round(layer.crop.x)}, y:{Math.round(layer.crop.y)}, w:
                 {Math.round(layer.crop.width)}, h:
@@ -167,7 +180,8 @@ const VideoCanvas = ({
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}
                 title="Move Up"
                 disabled={i === 0}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (i === 0) return;
                   setLayers(prev => {
                     const arr = [...prev];
@@ -182,7 +196,8 @@ const VideoCanvas = ({
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}
                 title="Move Down"
                 disabled={i === layers.length - 1}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (i === layers.length - 1) return;
                   setLayers(prev => {
                     const arr = [...prev];
@@ -196,7 +211,8 @@ const VideoCanvas = ({
               <button
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}
                 title={layer.hidden ? 'Show' : 'Hide'}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setLayers(prev => prev.map((l, j) => j === i ? { ...l, hidden: !l.hidden } : l));
                 }}
               >
@@ -205,7 +221,8 @@ const VideoCanvas = ({
               <button
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#f44' }}
                 title="Delete"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setLayers(prev => prev.filter((_, j) => j !== i));
                 }}
               >
