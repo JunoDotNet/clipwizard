@@ -13,7 +13,8 @@ const ProjectControls = ({ onLoadComplete }) => {
     setHighlightedSections,
     setCropQueue,
     setSharedCropLayers,
-    setCropOverrides
+    setCropOverrides,
+    setCaptionOverrides
   } = useAppContext();
 
   const handleLoad = async () => {
@@ -37,6 +38,7 @@ const ProjectControls = ({ onLoadComplete }) => {
     setCropQueue(data.cropQueue || []);
     setSharedCropLayers(data.sharedCropLayers || []);
     setCropOverrides(data.cropOverrides || {});
+    setCaptionOverrides(data.captionOverrides || {});
 
     const buffer = await window.electronAPI.readFileAsBlob(data.videoFilePath);
     const blob = new Blob([buffer], { type: 'video/mp4' });

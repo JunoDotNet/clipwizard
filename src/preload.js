@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ipcRenderer.invoke('save-transcript-file', path, content),
 
   exportSingleCut: (inputPath, fileName, clips, outputPath) =>
-  ipcRenderer.invoke('export-single-cut', inputPath, fileName, clips, outputPath),
+    ipcRenderer.invoke('export-single-cut', inputPath, fileName, clips, outputPath),
 
   exportSingleCutWithEffects: (inputPath, fileName, clips, outputPath, videoResolution) =>
     ipcRenderer.invoke('export-single-cut-with-effects', inputPath, fileName, clips, outputPath, videoResolution),
