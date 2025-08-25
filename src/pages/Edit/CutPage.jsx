@@ -177,20 +177,11 @@ const CutPage = () => {
           padding: '10px 0',
         }}
       >
-        <div
-          style={{
-            width: 960,
-            aspectRatio: '16 / 9',
-            background: 'black',
-            contain: 'layout paint',
-          }}
-        >
-          {videoSrc ? (
-            <VideoPlayer src={videoSrc} videoRef={videoRef} />
-          ) : (
-            <p>⚠️ No video loaded.</p>
-          )}
-        </div>
+        {videoSrc ? (
+          <VideoPlayer src={videoSrc} videoRef={videoRef} />
+        ) : (
+          <p>⚠️ No video loaded.</p>
+        )}
 
         <div
           style={{

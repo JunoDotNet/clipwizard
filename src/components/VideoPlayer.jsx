@@ -12,7 +12,6 @@ const VideoPlayer = ({ src, videoRef }) => {
     <video
       ref={videoRef}
       src={src}
-      controls
       style={{
         width: 960,
         aspectRatio: '16 / 9',
