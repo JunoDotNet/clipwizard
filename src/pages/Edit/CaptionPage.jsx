@@ -56,10 +56,10 @@ const CaptionPage = () => {
 
     console.log('📝 CaptionPage currentData:', layers, 'type:', typeof layers, 'isArray:', Array.isArray(layers));
 
-    // Create layers with dynamic text - preserve all styling but update text content
+    // Create layers with preserved text - only use transcript text as fallback for empty layers
     const layersWithDynamicText = Array.isArray(layers) ? layers.map(layer => ({
       ...layer, // Keep all styling (font, color, position, size, etc.)
-      text: currentItem?.text || layer.text || '' // Use clip's text, fallback to layer text, then empty
+      text: layer.text || (currentItem?.text || '').trim() // Use layer's text first, fallback to trimmed clip's text, then empty
     })) : [];
 
     return (
@@ -83,7 +83,7 @@ const CaptionPage = () => {
             captionLayers={layersWithDynamicText}
             onNewLayer={handleNewLayer}
             onUpdateLayers={handleUpdateLayers}
-            initialText={currentItem?.text || ''} 
+            initialText={(currentItem?.text || '').trim()} 
             enableCaptionEditing={true}
           />
         </div>

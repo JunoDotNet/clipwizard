@@ -109,7 +109,9 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
 
           // Word wrap based on box width
           const wrapText = (text, maxWidthPx, fontSize) => {
-            const words = text.split(/\s+/);
+            // Trim the text to remove leading/trailing spaces
+            const trimmedText = text.trim();
+            const words = trimmedText.split(/\s+/).filter(word => word.length > 0); // Remove empty strings
             const lines = [];
             let currentLine = '';
             const avgCharWidth = fontSize * 0.5; // tweak if needed
