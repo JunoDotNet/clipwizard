@@ -80,6 +80,13 @@ const OutputCanvas = ({
       )
     );
   };
+  
+  // Selected layer
+  useEffect(() => {
+    if (!selectedLayerId && cropLayers.length > 0) {
+      setSelectedLayerId?.(cropLayers[cropLayers.length - 1].id);
+    }
+  }, [cropLayers, selectedLayerId, setSelectedLayerId]);
 
   // Load custom font when captionData changes
   useEffect(() => {
@@ -384,10 +391,8 @@ const OutputCanvas = ({
 
         <GizmoOverlay
           // geometry
-          displayWidth={dynamicDisplaySize.width}
-          displayHeight={dynamicDisplaySize.height}
-          canvasWidth={canvasSize.width}
-          canvasHeight={canvasSize.height}
+          displaySize={dynamicDisplaySize}     // 👈 { width, height }
+          canvasSize={canvasSize}               // 👈 { width, height }
           scale={scale}
 
           // data
