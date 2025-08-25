@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import CaptionEditorBox from '../caption/CaptionEditorBox';
 import { drawWrappedText } from '../../utils/drawWrappedText';
 import { useAppContext } from '../../context/AppContext';
+import GizmoOverlay from '../gizmo/GizmoOverlay';
 
 const OutputCanvas = ({
   videoRef,
@@ -11,6 +12,11 @@ const OutputCanvas = ({
   captionLayers = [],
   activeCrop = null,
   captionData = {},
+  selectedLayerId,
+  setSelectedLayerId,
+  gizmoMode = 'move',
+  scaleLocked = true,
+  onChangeLayers,
   // Caption editing props
   onNewLayer,
   onUpdateLayers,
@@ -63,6 +69,16 @@ const OutputCanvas = ({
       x: (e.clientX - rect.left) / scale,
       y: (e.clientY - rect.top) / scale,
     };
+  };
+
+  const updateLayerTransform = (id, patch) => {
+    if (!onChangeLayers) return;
+    onChangeLayers(prev =>
+      prev.map(l => l.id === id
+        ? { ...l, transform: { x: 0, y: 0, scale: 1, rotate: 0, ...(l.transform||{}), ...patch } }
+        : l
+      )
+    );
   };
 
   // Load custom font when captionData changes
@@ -363,6 +379,49 @@ const OutputCanvas = ({
             top: 0,
             left: 0,
             zIndex: 0,
+          }}
+        />
+
+        <GizmoOverlay
+          // geometry
+          displayWidth={dynamicDisplaySize.width}
+          displayHeight={dynamicDisplaySize.height}
+          canvasWidth={canvasSize.width}
+          canvasHeight={canvasSize.height}
+          scale={scale}
+
+          // data
+          layers={cropLayers}
+          selectedId={selectedLayerId}
+          setSelectedId={setSelectedLayerId}
+
+          // mode
+          mode={gizmoMode}             // 'move' | 'scale' | 'rotate'
+          scaleLocked={scaleLocked}
+
+          // callbacks
+          onMove={(id, dx, dy) => {
+            // dx/dy are in canvas px; update transform.x/y
+            const L = cropLayers.find(l => l.id === id);
+            const t = L?.transform || { x:0, y:0, scale:1, rotate:0 };
+            updateLayerTransform(id, { x: t.x + dx, y: t.y + dy });
+          }}
+          onScale={(id, sx, sy, anchor) => {
+            const L = cropLayers.find(l => l.id === id);
+            const t = L?.transform || { x:0, y:0, scale:1, rotate:0 };
+            // If your model uses uniform `scale`, map sx/sy to a single factor when locked
+            if (scaleLocked) {
+              const uniform = Math.max(sx, sy);
+              updateLayerTransform(id, { scale: t.scale * uniform });
+            } else {
+              // If you support non-uniform, store separately or convert to uniform as needed
+              updateLayerTransform(id, { scale: t.scale * Math.max(sx, sy) });
+            }
+          }}
+          onRotate={(id, ddeg) => {
+            const L = cropLayers.find(l => l.id === id);
+            const t = L?.transform || { x:0, y:0, scale:1, rotate:0 };
+            updateLayerTransform(id, { rotate: t.rotate + ddeg });
           }}
         />
 

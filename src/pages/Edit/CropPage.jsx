@@ -1,7 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
+// pages/Edit/CropPage.jsx
+import React, { useState, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import VideoCanvas from '../../components/crop/VideoCanvas';
 import OutputCanvas from '../../components/shared/OutputCanvas';
+import GizmoToolbar from '../../components/gizmo/GizmoToolbar';     // ✅ add
 import QueuePageBase from '../../components/QueuePageBase';
 
 const CropPage = () => {
@@ -11,24 +13,23 @@ const CropPage = () => {
     captionOverrides
   } = useAppContext();
 
-  const [editingCrop, setEditingCrop] = useState(null);
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [currentData, setCurrentData] = useState(null);
+  const [currentData, setCurrentData] = useState([]);   // crop layers for active clip
+  const [selectedId, setSelectedId] = useState(null);   // which crop layer is selected
+  const [gizmoMode, setGizmoMode] = useState('move');   // 'move' | 'scale' | 'rotate'
+  const [scaleLocked, setScaleLocked] = useState(true); // keep aspect while scaling?
 
-  // Memoize the callback functions to prevent infinite re-renders
-  const getItemData = useCallback(() => cropOverrides, [cropOverrides]);
+  const getItemData   = useCallback(() => cropOverrides, [cropOverrides]);
   const getSharedData = useCallback(() => sharedCropLayers, [sharedCropLayers]);
   const handleDataChange = useCallback((data) => {
-    // This callback is triggered when layer data changes
-    // The QueuePageBase will handle saving to overrides
     console.log('🎨 Crop data changed:', data);
   }, []);
 
-  const renderCropEditor = ({ videoRef, videoSrc, videoSize, displayVideoSize, displayFrameSize, currentItem, currentData, setCurrentData }) => {
+  const renderCropEditor = ({ videoRef, videoSrc, videoSize, displayVideoSize, displayFrameSize, currentItem }) => {
     const layers = currentData || [];
 
     return (
-      <div style={{ display: 'flex', gap: 40 }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+        {/* Left: source / draw crop boxes */}
         <VideoCanvas
           videoPath={videoSrc}
           videoSize={videoSize}
@@ -36,20 +37,39 @@ const CropPage = () => {
           videoRef={videoRef}
           layers={layers}
           setLayers={setCurrentData}
-          editingCrop={editingCrop}
-          setEditingCrop={setEditingCrop}
-          editingIndex={editingIndex}
-          setEditingIndex={setEditingIndex}
+          onSelect={(id) => setSelectedId(id)}
+          selectedId={selectedId}
         />
-        <OutputCanvas
-          videoRef={videoRef}
-          displaySize={displayFrameSize}
-          videoSize={videoSize}
-          cropLayers={layers}
-          captionLayers={captionOverrides[currentItem?.id] || []}
-          activeCrop={editingCrop}
-          enableCaptionEditing={false}
-          showResolutionSelector={true}
+
+        {/* Middle: rendered OUTPUT with gizmo overlay on top */}
+        <div style={{ position: 'relative' }}>
+          <OutputCanvas
+            videoRef={videoRef}
+            displaySize={displayFrameSize}
+            videoSize={videoSize}
+            cropLayers={layers}
+            captionLayers={captionOverrides[currentItem?.id] || []}
+            selectedLayerId={selectedId}                 // ✅ pass selection
+            setSelectedLayerId={setSelectedId}
+            gizmoMode={gizmoMode}                        // ✅ pass gizmo state
+            scaleLocked={scaleLocked}
+            onChangeLayers={setCurrentData}              // ✅ live updates from overlay
+            showResolutionSelector={true}
+            enableCaptionEditing={false}
+          />
+        </div>
+
+        {/* Right: vertical tool stack */}
+        <GizmoToolbar
+          mode={gizmoMode}
+          setMode={setGizmoMode}
+          scaleLocked={scaleLocked}
+          setScaleLocked={setScaleLocked}
+          onDelete={() => {
+            if (!selectedId) return;
+            setCurrentData(prev => prev.filter(l => l.id !== selectedId));
+            setSelectedId(null);
+          }}
         />
       </div>
     );
