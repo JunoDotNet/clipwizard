@@ -26,8 +26,14 @@ const AnimatedLoading = () => {
 };
 
 const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript, setClipTabs, setActiveTabId, setSelectedFile, setVideoSrc, setWavUrl, splashMode }) => {
+  const [selectedModel, setSelectedModel] = useState('ggml-medium.en.bin');
   const showClose = splashMode === 'manual';
   const { setShowSplash } = require('../context/AppContext').useAppContext();
+  
+  const handleFileSelectedWithModel = (url, file) => {
+    onFileSelected(url, file, selectedModel);
+  };
+  
   // Handler for clicking outside the splash box
   const handleOverlayClick = () => {
     if (showClose) setShowSplash(false);
@@ -71,7 +77,29 @@ const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript,
       >
         <h1 style={{ fontSize: 48, marginBottom: 32 }}>🎬 ClipWizard!</h1>
 
-        <FilePicker onFileSelected={onFileSelected} />
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 'bold' }}>
+            Whisper Model:
+          </label>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            style={{
+              width: '280px',
+              padding: '8px 12px',
+              fontSize: 14,
+              border: '2px solid #ddd',
+              borderRadius: 8,
+              background: 'white',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="ggml-base.en.bin">Base Model (Faster, Less Accurate)</option>
+            <option value="ggml-medium.en.bin">Medium Model (Slower, More Accurate)</option>
+          </select>
+        </div>
+
+        <FilePicker onFileSelected={handleFileSelectedWithModel} />
 
         <div style={{ marginTop: 20 }}>
           <ProjectControls

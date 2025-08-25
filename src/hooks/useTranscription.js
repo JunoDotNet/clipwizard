@@ -10,7 +10,7 @@ export default function useTranscription() {
   const [error, setError] = useState(null);
   const { setTranscript, setWavPath } = useAppContext();
 
-  const transcribe = async (file) => {
+  const transcribe = async (file, model = 'ggml-medium.en.bin') => {
     setIsTranscribing(true);
     setError(null);
 
@@ -18,7 +18,7 @@ export default function useTranscription() {
         const rawFile = file.originalFile || file;
         const arrayBuffer = await rawFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer); // 👈 Convert to Node Buffer
-        const { transcript, wavPath } = await window.electronAPI.transcribeBuffer(buffer, file.name);
+        const { transcript, wavPath } = await window.electronAPI.transcribeBuffer(buffer, file.name, model);
         setTranscript(transcript);       // ⬅️ saves to context
         setWavPath(wavPath);             // ⬅️ also saves to context
         setTranscription(transcript);    // ⬅️ optional: if you're still using local state

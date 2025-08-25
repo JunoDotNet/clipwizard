@@ -26,11 +26,11 @@ const ImportPage = () => {
   const [wavUrl, setWavUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFileSelected = (url, file) => {
+  const handleFileSelected = (url, file, model = 'ggml-medium.en.bin') => {
     setVideoSrc(url);
     setSelectedFile(file);
     setLoading(true);
-    transcribe(file);
+    transcribe(file, model);
     clearCropData(); // Clear crop data when loading a new video
     // setShowSplash(false); // Moved to after transcript loads
   };
