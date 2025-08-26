@@ -459,19 +459,29 @@ const ExportPage = () => {
                   return null;
                 })()}
               </label>
-              <label>
+              <label style={{ 
+                opacity: 0.5, 
+                color: '#888', 
+                cursor: 'not-allowed' 
+              }}>
                 <input
                   type="checkbox"
-                  checked={exportTypes.xml}
-                  onChange={(e) => setExportTypes(prev => ({ ...prev, xml: e.target.checked }))}
-                /> Premiere XML
+                  checked={false}
+                  disabled={true}
+                  style={{ cursor: 'not-allowed' }}
+                /> Premiere XML (Coming Soon)
               </label>
-              <label>
+              <label style={{ 
+                opacity: 0.5, 
+                color: '#888', 
+                cursor: 'not-allowed' 
+              }}>
                 <input
                   type="checkbox"
-                  checked={exportTypes.transcript}
-                  onChange={(e) => setExportTypes(prev => ({ ...prev, transcript: e.target.checked }))}
-                /> Transcript (.json)
+                  checked={false}
+                  disabled={true}
+                  style={{ cursor: 'not-allowed' }}
+                /> Transcript (.json) (Coming Soon)
               </label>
             </div>
           </div>

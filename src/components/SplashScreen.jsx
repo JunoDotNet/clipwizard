@@ -26,7 +26,7 @@ const AnimatedLoading = () => {
 };
 
 const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript, setClipTabs, setActiveTabId, setSelectedFile, setVideoSrc, setWavUrl, splashMode }) => {
-  const [selectedModel, setSelectedModel] = useState('ggml-medium.en.bin');
+  const [selectedModel, setSelectedModel] = useState('ggml-base.en.bin');
   const showClose = splashMode === 'manual';
   const { setShowSplash } = require('../context/AppContext').useAppContext();
   

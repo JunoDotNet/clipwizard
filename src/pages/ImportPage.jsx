@@ -26,7 +26,7 @@ const ImportPage = () => {
   const [wavUrl, setWavUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFileSelected = (url, file, model = 'ggml-medium.en.bin') => {
+  const handleFileSelected = (url, file, model = 'ggml-base.en.bin') => {
     setVideoSrc(url);
     setSelectedFile(file);
     setLoading(true);

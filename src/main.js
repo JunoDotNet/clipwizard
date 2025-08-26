@@ -65,7 +65,7 @@ app.whenReady().then(() => {
     });
   });
 
-  ipcMain.handle('transcribe-buffer', async (event, buffer, fileName, model = 'ggml-medium.en.bin') => {
+  ipcMain.handle('transcribe-buffer', async (event, buffer, fileName, model = 'ggml-base.en.bin') => {
     const ext = path.extname(fileName).toLowerCase();
     const baseName = `input-${uuidv4()}`;
     const outputDir = app.getPath('userData');

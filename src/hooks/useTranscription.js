@@ -10,7 +10,7 @@ export default function useTranscription() {
   const [error, setError] = useState(null);
   const { setTranscript, setWavPath } = useAppContext();
 
-  const transcribe = async (file, model = 'ggml-medium.en.bin') => {
+  const transcribe = async (file, model = 'ggml-base.en.bin') => {
     setIsTranscribing(true);
     setError(null);
 
