@@ -133,9 +133,10 @@ function cutClipWithEffects(inputPath, clip, outPath, videoResolution, outputRes
           let lines = wrapText(layer.text, boxW - 10, fontSize);
           let totalHeight = lines.length * fontSize * lineHeightMult;
 
-          // Shrink font if text exceeds box height
-          if (totalHeight > boxH - 4) {
-            fontSize = Math.max(8, Math.floor((boxH - 4) / (lines.length * lineHeightMult)));
+          // Auto-size font to fit box (similar to preview logic)
+          // Shrink font iteratively until text fits both width and height constraints
+          while ((totalHeight > boxH - 4 || lines.some(line => line.length * fontSize * 0.5 > boxW - 10)) && fontSize > 8) {
+            fontSize -= 1;
             lines = wrapText(layer.text, boxW - 10, fontSize);
             totalHeight = lines.length * fontSize * lineHeightMult;
           }

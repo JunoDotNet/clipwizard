@@ -111,7 +111,7 @@ const ExportPage = () => {
                 fontColor: layer.color || '#ffffff',
                 textAlign: layer.textAlign || 'left',
                 customFontPath,
-                fontSize: Math.max(16, Math.min(72, Math.floor(layer.box?.height * 0.3) || 24))
+                fontSize: Math.max(16, Math.min(72, Math.floor(layer.box?.height * 0.4) || 32))
               };
             });
             captionData = { layers: mappedLayers };
