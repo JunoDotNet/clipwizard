@@ -15,6 +15,7 @@ const OutputCanvas = ({
   selectedLayerId,
   setSelectedLayerId,
   gizmoMode = 'move',
+  setGizmoMode,
   scaleLocked = true,
   onChangeLayers,
   // Caption editing props
@@ -383,43 +384,71 @@ const OutputCanvas = ({
         />
 
         <GizmoOverlay
-          // geometry
-          displaySize={dynamicDisplaySize}     // 👈 { width, height }
-          canvasSize={canvasSize}               // 👈 { width, height }
+          displaySize={dynamicDisplaySize}
+          canvasSize={canvasSize}
           scale={scale}
-
-          // data
           layers={cropLayers}
           selectedId={selectedLayerId}
-          setSelectedId={setSelectedLayerId}
-
-          // mode
-          mode={gizmoMode}             // 'move' | 'scale' | 'rotate'
+          mode={gizmoMode}
           scaleLocked={scaleLocked}
-
-          // callbacks
-          onMove={(id, dx, dy) => {
-            // dx/dy are in canvas px; update transform.x/y
-            const L = cropLayers.find(l => l.id === id);
-            const t = L?.transform || { x:0, y:0, scale:1, rotate:0 };
-            updateLayerTransform(id, { x: t.x + dx, y: t.y + dy });
-          }}
-          onScale={(id, sx, sy, anchor) => {
-            const L = cropLayers.find(l => l.id === id);
-            const t = L?.transform || { x:0, y:0, scale:1, rotate:0 };
-            // If your model uses uniform `scale`, map sx/sy to a single factor when locked
-            if (scaleLocked) {
-              const uniform = Math.max(sx, sy);
-              updateLayerTransform(id, { scale: t.scale * uniform });
-            } else {
-              // If you support non-uniform, store separately or convert to uniform as needed
-              updateLayerTransform(id, { scale: t.scale * Math.max(sx, sy) });
+          onPointerDown={(e, handle) => {
+            // Automatically switch tool based on handle type
+            let toolToUse = 'move';
+            if (handle.rotate) {
+              toolToUse = 'rotate';
+            } else if (handle.id === 'center') {
+              // Center handle is always for moving
+              toolToUse = 'move';
+            } else if (['tl', 'tr', 'br', 'bl', 'tm', 'bm', 'ml', 'mr'].includes(handle.id)) {
+              // Corner and edge handles = scale
+              toolToUse = 'scale';
             }
-          }}
-          onRotate={(id, ddeg) => {
-            const L = cropLayers.find(l => l.id === id);
-            const t = L?.transform || { x:0, y:0, scale:1, rotate:0 };
-            updateLayerTransform(id, { rotate: t.rotate + ddeg });
+            // Any other handle defaults to 'move'
+
+            // Update the toolbar to show the active tool
+            if (setGizmoMode && toolToUse !== gizmoMode) {
+              setGizmoMode(toolToUse);
+            }
+
+            // Handle gizmo interactions based on the auto-detected tool
+            const startPos = { x: e.clientX, y: e.clientY };
+            const selectedLayer = cropLayers.find(l => l.id === selectedLayerId);
+            if (!selectedLayer) return;
+
+            const initialTransform = selectedLayer.transform || { x: 0, y: 0, scale: 1, rotate: 0 };
+
+            const handlePointerMove = (moveE) => {
+              const dx = (moveE.clientX - startPos.x) / scale;
+              const dy = (moveE.clientY - startPos.y) / scale;
+
+              if (toolToUse === 'rotate') {
+                // Rotation logic
+                const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                updateLayerTransform(selectedLayerId, { 
+                  rotate: initialTransform.rotate + angle * 0.5
+                });
+              } else if (toolToUse === 'move') {
+                // Move logic
+                updateLayerTransform(selectedLayerId, {
+                  x: initialTransform.x + dx,
+                  y: initialTransform.y + dy
+                });
+              } else if (toolToUse === 'scale') {
+                // Scale logic
+                const scaleChange = 1 + (dx + dy) * 0.005;
+                updateLayerTransform(selectedLayerId, {
+                  scale: Math.max(0.1, initialTransform.scale * scaleChange)
+                });
+              }
+            };
+
+            const handlePointerUp = () => {
+              document.removeEventListener('pointermove', handlePointerMove);
+              document.removeEventListener('pointerup', handlePointerUp);
+            };
+
+            document.addEventListener('pointermove', handlePointerMove);
+            document.addEventListener('pointerup', handlePointerUp);
           }}
         />
 

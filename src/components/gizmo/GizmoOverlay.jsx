@@ -89,6 +89,25 @@ export default function GizmoOverlay({
       {/* Selection rect */}
       {selected && rectStyle && <div style={rectStyle} />}
 
+      {/* Center move handle - invisible but clickable */}
+      {selected && rectStyle && (
+        <div
+          onPointerDown={e => { e.stopPropagation(); onPointerDown?.(e, { id: 'center', rotate: false }); }}
+          style={{
+            position: 'absolute',
+            left: rectStyle.left + 20,
+            top: rectStyle.top + 20,
+            width: rectStyle.width - 40,
+            height: rectStyle.height - 40,
+            pointerEvents: 'auto',
+            cursor: 'grab',
+            // Make it barely visible for debugging
+            // background: 'rgba(255,255,255,0.1)'
+          }}
+          title="Move"
+        />
+      )}
+
       {/* Handles */}
       {selected && handles.map(h => (
         <div
@@ -103,13 +122,11 @@ export default function GizmoOverlay({
             pointerEvents: 'auto',
             cursor: h.rotate
               ? 'grab'
-              : (h.id === 'ml' || h.id === 'mr')
-              ? 'ew-resize'
-              : (h.id === 'tm' || h.id === 'bm')
-              ? 'ns-resize'
-              : 'nwse-resize'
+              : (h.id === 'ml' || h.id === 'mr' || h.id === 'tm' || h.id === 'bm' || h.id === 'tl' || h.id === 'tr' || h.id === 'bl' || h.id === 'br')
+              ? 'nwse-resize'
+              : 'grab'
           }}
-          title={h.rotate ? 'Rotate' : (mode === 'scale' ? 'Scale' : 'Move')}
+          title={h.rotate ? 'Rotate' : (h.id.includes('l') || h.id.includes('r') || h.id.includes('t') || h.id.includes('b')) ? 'Scale' : 'Move'}
         />
       ))}
     </div>

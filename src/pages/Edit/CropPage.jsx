@@ -52,6 +52,7 @@ const CropPage = () => {
             selectedLayerId={selectedId}                 // ✅ pass selection
             setSelectedLayerId={setSelectedId}
             gizmoMode={gizmoMode}                        // ✅ pass gizmo state
+            setGizmoMode={setGizmoMode}                  // ✅ pass gizmo setter
             scaleLocked={scaleLocked}
             onChangeLayers={setCurrentData}              // ✅ live updates from overlay
             showResolutionSelector={true}
