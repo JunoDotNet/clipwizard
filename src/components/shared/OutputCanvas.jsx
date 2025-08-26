@@ -76,7 +76,22 @@ const OutputCanvas = ({
     if (!onChangeLayers) return;
     onChangeLayers(prev =>
       prev.map(l => l.id === id
-        ? { ...l, transform: { x: 0, y: 0, scale: 1, rotate: 0, ...(l.transform||{}), ...patch } }
+        ? { 
+            ...l, 
+            transform: (() => {
+              const baseTransform = { x: 0, y: 0, scale: 1, rotate: 0, ...(l.transform||{}) };
+              const newTransform = { ...baseTransform, ...patch };
+              
+              // Clean up undefined properties
+              Object.keys(newTransform).forEach(key => {
+                if (newTransform[key] === undefined) {
+                  delete newTransform[key];
+                }
+              });
+              
+              return newTransform;
+            })()
+          }
         : l
       )
     );
@@ -148,7 +163,11 @@ const OutputCanvas = ({
 
       // Rotate and scale the entire cropped region
       ctx.rotate((transform.rotate * Math.PI) / 180);
-      ctx.scale(transform.scale, transform.scale);
+      
+      // Handle both uniform and non-uniform scaling
+      const scaleX = transform.scaleX || transform.scale || 1;
+      const scaleY = transform.scaleY || transform.scale || 1;
+      ctx.scale(scaleX, scaleY);
 
       // Draw the crop centered at (0, 0)
       ctx.drawImage(
@@ -434,11 +453,58 @@ const OutputCanvas = ({
                   y: initialTransform.y + dy
                 });
               } else if (toolToUse === 'scale') {
-                // Scale logic
-                const scaleChange = 1 + (dx + dy) * 0.005;
-                updateLayerTransform(selectedLayerId, {
-                  scale: Math.max(0.1, initialTransform.scale * scaleChange)
-                });
+                // Scale logic - handle uniform vs non-uniform scaling
+                const currentTransform = selectedLayer.transform || { x: 0, y: 0, scale: 1, rotate: 0 };
+                
+                if (scaleLocked) {
+                  // Uniform scaling (locked aspect ratio)
+                  // If we have separate scaleX/scaleY, convert to uniform scale first
+                  let baseScale = currentTransform.scale || 1;
+                  if (currentTransform.scaleX && currentTransform.scaleY) {
+                    // Use average of scaleX and scaleY as base
+                    baseScale = (currentTransform.scaleX + currentTransform.scaleY) / 2;
+                  }
+                  
+                  const scaleChange = 1 + (dx + dy) * 0.005;
+                  const newScale = Math.max(0.1, baseScale * scaleChange);
+                  
+                  // Clear scaleX/scaleY and use uniform scale
+                  updateLayerTransform(selectedLayerId, {
+                    scale: newScale,
+                    scaleX: undefined,
+                    scaleY: undefined
+                  });
+                } else {
+                  // Non-uniform scaling (unlocked aspect ratio)
+                  // Initialize scaleX/scaleY from current scale if they don't exist
+                  let currentScaleX = currentTransform.scaleX || currentTransform.scale || 1;
+                  let currentScaleY = currentTransform.scaleY || currentTransform.scale || 1;
+                  
+                  let scaleXChange = 1;
+                  let scaleYChange = 1;
+                  
+                  // Different scaling based on which handle is being dragged
+                  if (handle.id.includes('l') || handle.id.includes('r')) {
+                    // Left/right handles - scale horizontally
+                    scaleXChange = 1 + dx * 0.01;
+                  }
+                  if (handle.id.includes('t') || handle.id.includes('b')) {
+                    // Top/bottom handles - scale vertically  
+                    scaleYChange = 1 + dy * 0.01;
+                  }
+                  if (['tl', 'tr', 'bl', 'br'].includes(handle.id)) {
+                    // Corner handles - scale both directions
+                    scaleXChange = 1 + dx * 0.01;
+                    scaleYChange = 1 + dy * 0.01;
+                  }
+                  
+                  // Update with separate scaleX and scaleY, clear uniform scale
+                  updateLayerTransform(selectedLayerId, {
+                    scaleX: Math.max(0.1, currentScaleX * scaleXChange),
+                    scaleY: Math.max(0.1, currentScaleY * scaleYChange),
+                    scale: undefined
+                  });
+                }
               }
             };
 
