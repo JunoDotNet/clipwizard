@@ -10,13 +10,26 @@ const CropPage = () => {
   const {
     sharedCropLayers, setSharedCropLayers,
     cropOverrides, setCropOverrides,
-    captionOverrides
+    captionOverrides,
+    cropQueue
   } = useAppContext();
 
   const [currentData, setCurrentData] = useState([]);   // crop layers for active clip
   const [selectedId, setSelectedId] = useState(null);   // which crop layer is selected
   const [gizmoMode, setGizmoMode] = useState('move');   // 'move' | 'scale' | 'rotate'
   const [scaleLocked, setScaleLocked] = useState(true); // keep aspect while scaling?
+  const [hasInitialized, setHasInitialized] = useState(false); // Track if we've done initial load
+
+  // Initialize currentData with first clip's crop data when component mounts (only once)
+  React.useEffect(() => {
+    if (cropQueue.length > 0 && !hasInitialized) {
+      const firstClip = cropQueue[0];
+      const firstClipData = cropOverrides[firstClip.id] || [...sharedCropLayers];
+      setCurrentData(JSON.parse(JSON.stringify(firstClipData)));
+      setHasInitialized(true);
+      console.log('🎯 Initialized crop page with first clip data:', firstClip.id, firstClipData);
+    }
+  }, [cropQueue, cropOverrides, sharedCropLayers, hasInitialized]);
 
   const getItemData   = useCallback(() => cropOverrides, [cropOverrides]);
   const getSharedData = useCallback(() => sharedCropLayers, [sharedCropLayers]);

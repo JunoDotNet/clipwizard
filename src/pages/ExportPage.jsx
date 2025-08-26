@@ -78,6 +78,36 @@ const ExportPage = () => {
     setRefreshKey(prev => prev + 1);
   }, [cropOverrides, captionOverrides]);
 
+  // Auto-jump to first clip when entering the page
+  React.useEffect(() => {
+    if (previewTab && previewTab.clips.length > 0 && videoRef.current) {
+      const video = videoRef.current;
+      
+      const jumpToFirstClip = () => {
+        const firstClip = previewTab.clips[0];
+        const adjustedStart = firstClip.start + (firstClip.startOffset || 0);
+        video.currentTime = Math.max(0, adjustedStart);
+        setCurrentClipIndex(0);
+        console.log(`🎬 Auto-jumped to first clip at ${adjustedStart}s in ExportPage`);
+      };
+
+      // If video is already loaded, jump immediately
+      if (video.readyState >= 1) {
+        jumpToFirstClip();
+      } else {
+        // Wait for video to load metadata first
+        const handleLoadedMetadata = () => {
+          jumpToFirstClip();
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        };
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        
+        // Cleanup if component unmounts
+        return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      }
+    }
+  }, [previewTab?.id, previewTab?.clips]); // Trigger when preview tab changes
+
   const toggleTab = (id) => {
     setSelectedTabIds(prev =>
       prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]

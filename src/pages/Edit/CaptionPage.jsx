@@ -9,10 +9,23 @@ const CaptionPage = () => {
     captionOverrides,
     setCaptionOverrides,
     cropOverrides,
+    cropQueue
   } = useAppContext();
 
   const [selectedLayerId, setSelectedLayerId] = useState(null);
   const [currentData, setCurrentData] = useState(null);
+  const [hasInitialized, setHasInitialized] = useState(false); // Track if we've done initial load
+
+  // Initialize currentData with first clip's caption data when component mounts (only once)
+  useEffect(() => {
+    if (cropQueue.length > 0 && !hasInitialized) {
+      const firstClip = cropQueue[0];
+      const firstClipData = captionOverrides[firstClip.id] || [];
+      setCurrentData(JSON.parse(JSON.stringify(firstClipData)));
+      setHasInitialized(true);
+      console.log('🎯 Initialized caption page with first clip data:', firstClip.id, firstClipData);
+    }
+  }, [cropQueue, captionOverrides, hasInitialized]);
 
   // Access per-clip caption data
   const getItemData = useCallback(() => captionOverrides, [captionOverrides]);

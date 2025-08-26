@@ -251,6 +251,13 @@ const QueuePageBase = ({
     console.log(`📄 Using OVERRIDE data for ${currentItem.id}`);
   }, [currentItem, getSharedData, getItemData]);
 
+  // Auto-jump to clip when currentItem changes (for initial load and manual selection)
+  useEffect(() => {
+    if (currentItem) {
+      jumpToClip(currentItem);
+    }
+  }, [currentItem]);
+
   // Save override only if user changed data (not when switching clips)
   useEffect(() => {
     if (!currentItem || !onDataChange) return;
@@ -454,6 +461,14 @@ const QueuePageBase = ({
 
   return (
     <div style={{ padding: 20 }}>
+      {/* Add CSS for hover effect */}
+      <style>{`
+        .queue-item:hover .play-button {
+          opacity: 1 !important;
+          pointer-events: auto !important;
+        }
+      `}</style>
+      
       <h2>{title}</h2>
       {!videoSrc ? (
         <p style={{ color: '#999' }}>⚠️ No video loaded. Please import one first.</p>
@@ -562,21 +577,81 @@ const QueuePageBase = ({
                   padding: '6px 10px',
                   marginBottom: 4,
                   background: idx === queueIndex ? '#e0f7ff' : '#f4f4f4',
-                  border: '1px solid #ccc',
+                  border: isPlayingAll && idx === currentPlayingIndex 
+                    ? '3px solid #007acc' 
+                    : idx === queueIndex 
+                      ? '2px solid #007acc' 
+                      : '1px solid #ccc',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  position: 'relative',
                 }}
+                className="queue-item"
                 onClick={() => {
                   setQueueIndex(idx);
                   jumpToClip(item);
                 }}
               >
-                <span>
+                <span style={{ flex: 1 }}>
                   {item.label} ({item.start.toFixed(1)}s – {item.end.toFixed(1)}s)
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {/* Individual play button - only visible on hover */}
+                  <button
+                    style={{ 
+                      fontSize: 12, 
+                      padding: '2px 6px',
+                      background: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 3,
+                      cursor: 'pointer',
+                      minWidth: 20,
+                      opacity: 0,
+                      transition: 'opacity 0.2s ease',
+                      pointerEvents: 'none',
+                    }}
+                    className="play-button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      const video = videoRef.current;
+                      if (video) {
+                        const adjustedStart = item.start + (item.startOffset || 0);
+                        const adjustedEnd = item.end + (item.endOffset || 0);
+                        
+                        // Set video time and play
+                        video.currentTime = Math.max(0, adjustedStart);
+                        video.play();
+                        
+                        // Set queue index to this clip
+                        setQueueIndex(idx);
+                        
+                        // Stop "play all" mode if active
+                        if (isPlayingAll) {
+                          setIsPlayingAll(false);
+                        }
+                        
+                        console.log(`▶️ Playing individual clip: ${item.label} (${adjustedStart}s-${adjustedEnd}s)`);
+                        
+                        // Set up a listener to pause at the end of this clip
+                        const handleTimeUpdate = () => {
+                          if (video.currentTime >= adjustedEnd) {
+                            video.pause();
+                            video.removeEventListener('timeupdate', handleTimeUpdate);
+                            console.log(`⏸️ Paused at end of clip: ${item.label}`);
+                          }
+                        };
+                        
+                        video.addEventListener('timeupdate', handleTimeUpdate);
+                      }
+                    }}
+                    title={`Play ${item.label}`}
+                  >
+                    ▶️
+                  </button>
+                  
                   <span style={{ color: '#666', fontSize: 13 }}>
                     {/* Show sharing status */}
                     {(() => {
