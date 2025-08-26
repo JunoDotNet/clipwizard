@@ -30,7 +30,7 @@ const cursorForEdge = {
   sw: 'nesw-resize',
 };
 
-const CropEditor = ({ crop, scale = 1, onChange, onClick, isSelected, containerRef, videoSize }) => {
+const CropEditor = ({ crop, scale = 1, onChange, containerRef, videoSize }) => {
   const boxRef = useRef(null);
   const dragging = useRef(false);
   const dragEdge = useRef('move');
@@ -64,10 +64,6 @@ const CropEditor = ({ crop, scale = 1, onChange, onClick, isSelected, containerR
   const handleMouseDown = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    
-    // Select this layer when clicked
-    if (onClick) onClick();
-    
     const mouse = getMouse(e);
     const edge = getEdge(0, 0, crop.width, crop.height, mouse.x - crop.x, mouse.y - crop.y, scale);
     dragEdge.current = edge;

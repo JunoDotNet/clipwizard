@@ -33,6 +33,8 @@ const ExportPage = () => {
   const [cancelRequested, setCancelRequested] = useState(false);
   const [videoResolution, setVideoResolution] = useState({ width: 1920, height: 1080 });
   const [previewTabId, setPreviewTabId] = useState(null); // Track which tab to preview
+  const [currentClipIndex, setCurrentClipIndex] = useState(0); // Track current clip being previewed
+  const [refreshKey, setRefreshKey] = useState(0); // Force refresh when returning to page
   const videoRef = useRef();
   const { playClips } = useClipPlayback(videoRef);
 
@@ -40,6 +42,41 @@ const ExportPage = () => {
   
   // Get the tab to preview (first selected tab or active tab)
   const previewTab = clipTabs.find(tab => tab.id === (previewTabId || activeTabId)) || filteredTabs[0];
+
+  // Effect to track current clip based on video time
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !previewTab) return;
+
+    const handleTimeUpdate = () => {
+      const currentTime = video.currentTime;
+      const clips = previewTab.clips;
+      
+      // Find which clip the current time falls into
+      for (let i = 0; i < clips.length; i++) {
+        const clip = clips[i];
+        if (currentTime >= clip.start && currentTime <= clip.end) {
+          if (currentClipIndex !== i) {
+            setCurrentClipIndex(i);
+          }
+          break;
+        }
+      }
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [previewTab, currentClipIndex]);
+
+  // Reset current clip index when switching tabs
+  React.useEffect(() => {
+    setCurrentClipIndex(0);
+  }, [previewTabId, previewTab?.id]);
+
+  // Force refresh when crop/caption data might have changed (e.g., returning from edit pages)
+  React.useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [cropOverrides, captionOverrides]);
 
   const toggleTab = (id) => {
     setSelectedTabIds(prev =>
@@ -215,27 +252,81 @@ const ExportPage = () => {
                   </option>
                 ))}
               </select>
-              <span style={{ fontSize: '12px', color: '#888' }}>
-                (First clip shown)
+              <button
+                onClick={() => playClips(previewTab.clips)}
+                style={{
+                  padding: '4px 8px',
+                  background: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                ▶️ Play All
+              </button>
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#666',
+                background: '#e9ecef',
+                padding: '2px 6px',
+                borderRadius: 3,
+              }}>
+                Showing clip {currentClipIndex + 1} of {previewTab.clips.length}
               </span>
             </div>
             <OutputCanvas
+              key={`preview-${previewTab.id}-${currentClipIndex}-${refreshKey}`}
               videoRef={videoRef}
               displaySize={{ width: 400, height: 300 }} // This will be dynamically calculated by OutputCanvas
               videoSize={videoResolution}
               cropLayers={(() => {
-                // Get crop data for the first clip in the preview tab
-                const firstClip = previewTab.clips[0];
-                if (!firstClip) return [];
-                const clipId = `${previewTab.id}-clip-0`;
-                return cropOverrides[clipId] || [];
+                // Get crop data for the current clip in the preview tab
+                const currentClip = previewTab.clips[currentClipIndex];
+                if (!currentClip) return [];
+                const clipId = `${previewTab.id}-clip-${currentClipIndex}`;
+                const layers = cropOverrides[clipId] || [];
+                
+                // Ensure layers is an array
+                const safeLayers = Array.isArray(layers) ? layers : [];
+                
+                // Debug: Log crop data to help identify issues
+                console.log('🔲 Preview crop layers:', {
+                  tabId: previewTab.id,
+                  clipIndex: currentClipIndex,
+                  clipId,
+                  cropLayers: safeLayers.length,
+                  cropData: safeLayers.map(l => ({ 
+                    crop: l.crop, 
+                    transform: l.transform,
+                    hidden: l.hidden 
+                  }))
+                });
+                
+                return safeLayers;
               })()}
               captionLayers={(() => {
-                // Get caption data for the first clip in the preview tab
-                const firstClip = previewTab.clips[0];
-                if (!firstClip) return [];
-                const clipId = `${previewTab.id}-clip-0`;
-                return captionOverrides[clipId] || [];
+                // Get caption data for the current clip in the preview tab
+                const currentClip = previewTab.clips[currentClipIndex];
+                if (!currentClip) return [];
+                const clipId = `${previewTab.id}-clip-${currentClipIndex}`;
+                const layers = captionOverrides[clipId] || [];
+                
+                // Ensure layers is an array
+                const safeLayers = Array.isArray(layers) ? layers : [];
+                
+                // Debug: Log current clip and caption data
+                console.log('🎬 Preview clip:', {
+                  tabId: previewTab.id,
+                  clipIndex: currentClipIndex,
+                  clipId,
+                  clip: currentClip,
+                  layers: safeLayers.length,
+                  layerTexts: safeLayers.map(l => l.text || 'no text')
+                });
+                
+                return safeLayers;
               })()}
               activeCrop={null}
               enableCaptionEditing={false}

@@ -38,7 +38,14 @@ const SortableClipItem = ({ clip, onClick, onDelete, isSelected }) => {
             }}
             style={{ flex: 1, cursor: 'pointer', paddingRight: 8 }}
         >
-            [{Math.round(clip.start)}s–{Math.round(clip.end)}s] {clip.text}
+            {(() => {
+                // Calculate adjusted times with offsets
+                const adjustedStart = clip.start + (clip.startOffset || 0);
+                const adjustedEnd = clip.end + (clip.endOffset || 0);
+                const originalTime = `(${clip.start.toFixed(1)}s-${clip.end.toFixed(1)}s)`;
+                const adjustedTime = `[${adjustedStart.toFixed(1)}s→${adjustedEnd.toFixed(1)}s]`;
+                return `${originalTime}${adjustedTime} ${clip.text}`;
+            })()}
         </div>
 
         {/* Delete button */}

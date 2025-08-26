@@ -120,14 +120,23 @@ const QueuePageBase = ({
 
     if (queueSource === 'allCuts') {
         queue = clipTabs.flatMap(tab =>
-        tab.clips.map((clip, index) => ({
-            id: `${tab.id}-clip-${index}`,
-            start: clip.start,
-            end: clip.end,
-            label: `${tab.name} - Clip ${index + 1}`,
-            text: clip.text,
-            sourceTabId: tab.id,
-        }))
+        tab.clips.map((clip, index) => {
+            const startOffset = clip.startOffset || 0;
+            const endOffset = clip.endOffset || 0;
+            const adjustedStart = clip.start + startOffset;
+            const adjustedEnd = clip.end + endOffset;
+            
+            return {
+                id: `${tab.id}-clip-${index}`,
+                start: clip.start,
+                end: clip.end,
+                startOffset: startOffset,
+                endOffset: endOffset,
+                label: `${tab.name} - Clip ${index + 1} [${adjustedStart.toFixed(1)}s→${adjustedEnd.toFixed(1)}s]`,
+                text: clip.text,
+                sourceTabId: tab.id,
+            };
+        })
         );
     } else if (queueSource === 'fullVideo') {
         // Full Video = all transcript clips from whisper
@@ -136,6 +145,8 @@ const QueuePageBase = ({
             id: `transcript-clip-${index}`,
             start: clip.start,
             end: clip.end,
+            startOffset: 0, // ✅ Transcript clips don't have offsets but include for consistency
+            endOffset: 0,   // ✅ Transcript clips don't have offsets but include for consistency
             label: `Transcript - Clip ${index + 1}`,
             text: clip.text,
             sourceTabId: null,
@@ -146,21 +157,73 @@ const QueuePageBase = ({
     } else {
         const tab = clipTabs.find(t => t.id === queueSource);
         if (tab) {
-        queue = tab.clips.map((clip, index) => ({
-            id: `${tab.id}-clip-${index}`,
-            start: clip.start,
-            end: clip.end,
-            label: `${tab.name} - Clip ${index + 1}`,
-            text: clip.text,
-            sourceTabId: tab.id,
-        }));
+        queue = tab.clips.map((clip, index) => {
+            const startOffset = clip.startOffset || 0;
+            const endOffset = clip.endOffset || 0;
+            const adjustedStart = clip.start + startOffset;
+            const adjustedEnd = clip.end + endOffset;
+            
+            return {
+                id: `${tab.id}-clip-${index}`,
+                start: clip.start,
+                end: clip.end,
+                startOffset: startOffset,
+                endOffset: endOffset,
+                label: `${tab.name} - Clip ${index + 1} [${adjustedStart.toFixed(1)}s→${adjustedEnd.toFixed(1)}s]`,
+                text: clip.text,
+                sourceTabId: tab.id,
+            };
+        });
         }
     }
 
     setCropQueue(queue);
     setQueueIndex(0);
-    console.log('📦 New queue:', queue);
+    console.log('📦 New queue with offsets:', queue.map(q => ({
+      id: q.id,
+      start: q.start,
+      end: q.end,
+      startOffset: q.startOffset,
+      endOffset: q.endOffset,
+      adjustedStart: q.start + (q.startOffset || 0),
+      adjustedEnd: q.end + (q.endOffset || 0)
+    })));
+    
+    // Also log the raw clip data to see what we're getting
+    if (queueSource !== 'fullVideo' && queueSource !== 'scenes') {
+      const tab = clipTabs.find(t => t.id === queueSource);
+      if (tab) {
+        console.log('📋 Raw tab clips with offsets:', tab.clips.map(clip => ({
+          id: clip.id,
+          start: clip.start,
+          end: clip.end,
+          startOffset: clip.startOffset,
+          endOffset: clip.endOffset,
+          hasStartOffset: 'startOffset' in clip,
+          hasEndOffset: 'endOffset' in clip,
+          fullClip: clip
+        })));
+      } else {
+        console.log('📋 Tab not found for queueSource:', queueSource, 'Available tabs:', clipTabs.map(t => t.id));
+      }
+    }
     }, [clipTabs, queueSource, setCropQueue, selectedFile, videoDuration, sceneSegments, transcript]);
+
+  // Debug: Log when clipTabs change
+  useEffect(() => {
+    console.log('📋 ClipTabs changed, checking for offsets:', clipTabs.map(tab => ({
+      tabId: tab.id,
+      tabName: tab.name,
+      clips: tab.clips.map(clip => ({
+        id: clip.id,
+        start: clip.start,
+        end: clip.end,
+        startOffset: clip.startOffset,
+        endOffset: clip.endOffset,
+        hasOffsets: !!(clip.startOffset || clip.endOffset)
+      }))
+    })));
+  }, [clipTabs]);
 
   // Track if data update is from user or programmatic (clip switch)
   const programmaticUpdateRef = useRef(false);
@@ -282,8 +345,11 @@ const QueuePageBase = ({
   const jumpToClip = (clip) => {
     const video = videoRef.current;
     if (!video) return;
-    video.currentTime = clip.start;
-    console.log(`⏯️ Jumped to ${clip.label} at ${clip.start}s`);
+    
+    // Calculate adjusted start time accounting for offsets
+    const adjustedStart = clip.start + (clip.startOffset || 0);
+    video.currentTime = Math.max(0, adjustedStart);
+    console.log(`⏯️ Jumped to ${clip.label} at adjusted time ${adjustedStart}s`);
   };
 
   // Function to play all clips sequentially
@@ -293,12 +359,22 @@ const QueuePageBase = ({
     setIsPlayingAll(true);
     setCurrentPlayingIndex(0);
     const firstClip = cropQueue[0];
+    
+    // Calculate adjusted start time accounting for offsets
+    const adjustedStart = firstClip.start + (firstClip.startOffset || 0);
+    
+    console.log('▶️ Starting to play all clips with adjusted times:', {
+      firstClip: firstClip.label,
+      originalStart: firstClip.start,
+      startOffset: firstClip.startOffset,
+      adjustedStart: adjustedStart
+    });
+    
     const video = videoRef.current;
     if (video) {
-      video.currentTime = firstClip.start;
+      video.currentTime = Math.max(0, adjustedStart);
       video.play();
     }
-    console.log('▶️ Starting to play all clips');
   };
 
   // Function to stop playing all
@@ -321,14 +397,27 @@ const QueuePageBase = ({
       if (currentPlayingIndex >= cropQueue.length) return;
       
       const currentClip = cropQueue[currentPlayingIndex];
-      if (video.currentTime >= currentClip.end) {
+      // Calculate adjusted end time accounting for offsets
+      const adjustedEnd = currentClip.end + (currentClip.endOffset || 0);
+      
+      if (video.currentTime >= adjustedEnd) {
+        console.log('⏭️ Clip transition:', {
+          currentClip: currentClip.label,
+          currentTime: video.currentTime,
+          originalEnd: currentClip.end,
+          endOffset: currentClip.endOffset,
+          adjustedEnd: adjustedEnd
+        });
         // Move to next clip
         const nextIndex = currentPlayingIndex + 1;
         if (nextIndex < cropQueue.length) {
           setCurrentPlayingIndex(nextIndex);
           const nextClip = cropQueue[nextIndex];
-          video.currentTime = nextClip.start;
-          console.log(`⏭️ Advanced to ${nextClip.label}`);
+          
+          // Calculate adjusted start time for next clip
+          const adjustedStart = nextClip.start + (nextClip.startOffset || 0);
+          video.currentTime = Math.max(0, adjustedStart);
+          console.log(`⏭️ Advanced to ${nextClip.label} at adjusted time ${adjustedStart}s`);
         } else {
           // Finished all clips
           setIsPlayingAll(false);

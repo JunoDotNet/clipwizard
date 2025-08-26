@@ -124,8 +124,6 @@ const VideoCanvas = ({
                 prev.map((l, j) => (j === i ? { ...l, crop: newCrop } : l))
               );
             }}
-            onClick={() => onSelect?.(layer.id)}
-            isSelected={selectedId === layer.id}
             containerRef={containerRef}
             videoSize={videoSize}
           />
