@@ -39,10 +39,12 @@ const SortableClipItem = ({ clip, onClick, onDelete, isSelected }) => {
             style={{ flex: 1, cursor: 'pointer', paddingRight: 8 }}
         >
             {(() => {
-                // Calculate adjusted times with offsets
-                const adjustedStart = clip.start + (clip.startOffset || 0);
-                const adjustedEnd = clip.end + (clip.endOffset || 0);
-                const originalTime = `(${clip.start.toFixed(1)}s-${clip.end.toFixed(1)}s)`;
+                // Calculate adjusted times with offsets - add safety checks
+                const start = typeof clip.start === 'number' ? clip.start : 0;
+                const end = typeof clip.end === 'number' ? clip.end : 0;
+                const adjustedStart = start + (clip.startOffset || 0);
+                const adjustedEnd = end + (clip.endOffset || 0);
+                const originalTime = `(${start.toFixed(1)}s-${end.toFixed(1)}s)`;
                 const adjustedTime = `[${adjustedStart.toFixed(1)}s→${adjustedEnd.toFixed(1)}s]`;
                 return `${originalTime}${adjustedTime} ${clip.text}`;
             })()}

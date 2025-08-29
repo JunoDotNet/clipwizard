@@ -13,11 +13,13 @@ const VideoPlayer = ({ src, videoRef }) => {
       ref={videoRef}
       src={src}
       style={{
-        width: 960,
-        aspectRatio: '16 / 9',
+        width: `calc(600px * var(--app-scale, 1))`,
+        height: `calc(336px * var(--app-scale, 1))`,
+        maxWidth: '100%',
         background: 'black',
-        margin: '20px auto',
         display: 'block',
+        borderRadius: `var(--scaled-border-radius, 4px)`,
+        border: `var(--scaled-border-width, 1px) solid #333`,
       }}
     />
   );

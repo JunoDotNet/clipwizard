@@ -60,6 +60,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   detectScenes: (videoPath) => ipcRenderer.invoke('detect-scenes', videoPath),
 
+  setWindowScale: (scaleKey) => ipcRenderer.invoke('set-window-scale', scaleKey),
 
+  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  closeWindow: () => ipcRenderer.invoke('close-window'),
 
 });

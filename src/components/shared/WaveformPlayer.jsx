@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/plugins/regions';
 import TimelinePlugin from 'wavesurfer.js/plugins/timeline';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../../context/AppContext';
 
 const formatTime = (seconds) =>
   [seconds / 60, seconds % 60]
@@ -26,6 +26,11 @@ const WaveformPlayer = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [audioLoaded, setAudioLoaded] = useState(false);
 
+  // Memoize highlight dependency to avoid unnecessary refreshes
+  const highlightDependency = useMemo(() => {
+    return JSON.stringify(highlightedSections);
+  }, [highlightedSections]);
+
   useEffect(() => {
     console.log('WaveformPlayer clips:', clips);
     setAudioLoaded(false);
@@ -46,7 +51,7 @@ const WaveformPlayer = ({
       waveColor: '#a0c4ff',
       progressColor: '#3a86ff',
       cursorColor: '#000',
-      height: 100,
+      height: Math.round(80 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-scale')) || 1)),
       minPxPerSec: 100, // initial zoom, do not use zoomLevel here
     });
 
@@ -241,7 +246,7 @@ const WaveformPlayer = ({
       }
       scrollEl?.removeEventListener('scroll', handleScroll);
     };
-  }, [clips, wavPath, editable, highlightedSections]);
+  }, [clips, wavPath, editable, highlightDependency]);
 
   // Add a new effect to update zoom only when zoomLevel changes and audio is loaded
   useEffect(() => {
@@ -302,31 +307,61 @@ const WaveformPlayer = ({
   if (!clips?.length) return null;
 
   return (
-    <div style={{ padding: 10 }}>
-      <h4>{title}</h4>
+    <div style={{ 
+      padding: 10, 
+      overflow: 'hidden',
+      height: 'auto'
+    }}>
+      <h4 style={{ margin: '0 0 10px 0' }}>{title}</h4>
       <div
         ref={containerRef}
         style={{
           width: '100%',
-          height: 100,
+          height: `calc(80px * var(--app-scale, 1))`,
           marginBottom: 0,
-          border: '1px solid #ccc',
+          border: `var(--scaled-border-width, 1px) solid #ccc`,
           background: '#f6f6f6',
           overflowX: 'auto',
+          overflowY: 'hidden',
           whiteSpace: 'nowrap',
         }}
       />
-      <div ref={timelineContainerRef} style={{ height: 20, marginBottom: 10 }} />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div ref={timelineContainerRef} style={{ height: `calc(20px * var(--app-scale, 1))`, marginBottom: `var(--scaled-spacing-xs, 4px)` }} />
+      <div style={{ 
+        display: 'flex', 
+        gap: `var(--scaled-spacing-xs, 4px)`, 
+        alignItems: 'center',
+        fontSize: `var(--scaled-font-sm, 12px)`
+      }}>
         <button 
           onClick={() => changeZoom(-20)} 
           disabled={!audioLoaded || !wavesurferRef.current}
+          style={{
+            padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 6px)`,
+            fontSize: `var(--scaled-font-sm, 12px)`,
+            background: '#444',
+            border: `var(--scaled-border-width, 1px) solid #555`,
+            color: '#ddd',
+            borderRadius: `var(--scaled-border-radius, 4px)`,
+            cursor: 'pointer',
+            height: `calc(24px * var(--app-scale, 1))`,
+          }}
         >
           ➖
         </button>
         <button 
           onClick={() => changeZoom(20)} 
           disabled={!audioLoaded || !wavesurferRef.current}
+          style={{
+            padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 6px)`,
+            fontSize: `var(--scaled-font-sm, 12px)`,
+            background: '#444',
+            border: `var(--scaled-border-width, 1px) solid #555`,
+            color: '#ddd',
+            borderRadius: `var(--scaled-border-radius, 4px)`,
+            cursor: 'pointer',
+            height: `calc(24px * var(--app-scale, 1))`,
+          }}
         >
           ➕
         </button>

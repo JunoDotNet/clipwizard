@@ -1,8 +1,8 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
-import LayoutFrame from './components/LayoutFrame';
-import ImportPage from './pages/ImportPage';
+import LayoutFrame from './components/shared/LayoutFrame';
+import ImportPage from './pages/Import/ImportPage';
 import ExportPage from './pages/ExportPage';
 
 import EditLayout from './pages/Edit/EditLayout';

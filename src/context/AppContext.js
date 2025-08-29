@@ -37,6 +37,9 @@ export const AppProvider = ({ children }) => {
   const [outputFormat, setOutputFormat] = useState('9:16');
   const [customResolution, setCustomResolution] = useState({ width: 1080, height: 1920 });
 
+  // Window scale system
+  const [windowScale, setWindowScale] = useState('medium');
+
   // Format presets
   const formatPresets = {
     '9:16': { name: 'Vertical (TikTok/Instagram)', width: 1080, height: 1920 },
@@ -44,6 +47,22 @@ export const AppProvider = ({ children }) => {
     '1:1': { name: 'Square (Instagram Post)', width: 1080, height: 1080 },
     '4:5': { name: 'Portrait (Instagram)', width: 1080, height: 1350 },
     'custom': { name: 'Custom', width: 1920, height: 1080 }
+  };
+
+  // Window scale presets (all maintain 4:3 aspect ratio)
+  const windowScalePresets = {
+    'small': { name: 'Small', width: 896, height: 672, description: '896×672', scale: 0.78 },
+    'medium': { name: 'Medium', width: 1152, height: 864, description: '1152×864', scale: 1.0 },
+    'large': { name: 'Large', width: 1408, height: 1056, description: '1408×1056', scale: 1.22 },
+    'xlarge': { name: 'X-Large', width: 1664, height: 1248, description: '1664×1248', scale: 1.44 }
+  };
+
+  // Function to change window scale
+  const changeWindowScale = async (newScale) => {
+    if (window.electronAPI?.setWindowScale) {
+      await window.electronAPI.setWindowScale(newScale);
+      setWindowScale(newScale);
+    }
   };
 
   // Get current output resolution
@@ -143,6 +162,10 @@ export const AppProvider = ({ children }) => {
         customResolution, setCustomResolution,
         formatPresets,
         getOutputResolution,
+        // Window scale system
+        windowScale, setWindowScale,
+        windowScalePresets,
+        changeWindowScale,
       }}
     >
       {children}

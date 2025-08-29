@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../../context/AppContext';
 import { v4 as uuidv4 } from 'uuid';
 
 const presetColors = [
@@ -10,7 +10,13 @@ const presetColors = [
 
 
 
-const HighlightLabelManager = ({ setActiveLabelId }) => {
+const HighlightLabelManager = ({ 
+  setActiveLabelId, 
+  hideTitle = false, 
+  hideAddButton = false,
+  isAddingLabel = null,
+  setIsAddingLabel = null 
+}) => {
   const {
     highlightLabels,
     setHighlightLabels,
@@ -24,7 +30,11 @@ const HighlightLabelManager = ({ setActiveLabelId }) => {
   const [error, setError] = useState('');
   const nameInputRef = useRef(null);
 
-  const lockUI = isAdding || editingId !== null;
+  // Use external isAddingLabel state if provided, otherwise use local state
+  const actualIsAdding = isAddingLabel !== null ? isAddingLabel : isAdding;
+  const actualSetIsAdding = setIsAddingLabel || setIsAdding;
+
+  const lockUI = actualIsAdding || editingId !== null;
 
   useEffect(() => {
   if (editingId && !highlightLabels.find(l => l.id === editingId)) {
@@ -34,14 +44,14 @@ const HighlightLabelManager = ({ setActiveLabelId }) => {
 
 
   useEffect(() => {
-    if (isAdding && nameInputRef.current) {
+    if (actualIsAdding && nameInputRef.current) {
       nameInputRef.current.focus();
     }
-  }, [isAdding]);
+  }, [actualIsAdding]);
 
   const startAdd = () => {
     setEditValues({ name: '', color: '#ffcc00' });
-    setIsAdding(true);
+    actualSetIsAdding(true);
     setEditingId(null);
     setError('');
   };
@@ -60,7 +70,7 @@ const HighlightLabelManager = ({ setActiveLabelId }) => {
     };
 
     setHighlightLabels(prev => [...prev, newLabel]);
-    setIsAdding(false);
+    actualSetIsAdding(false);
     setError('');
   };
 
@@ -84,8 +94,8 @@ const HighlightLabelManager = ({ setActiveLabelId }) => {
   };
 
   return (
-    <div style={{ marginTop: 20 }}>
-      <h4>🎨 Highlight Labels</h4>
+    <div style={{ marginTop: hideTitle ? 0 : 20 }}>
+      {!hideTitle && <h4>🎨 Highlight Labels</h4>}
 
       {highlightLabels.map(label => (
         <div key={label.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
@@ -157,7 +167,7 @@ const HighlightLabelManager = ({ setActiveLabelId }) => {
 
 
       <div style={{ marginTop: 10 }}>
-        {isAdding ? (
+        {!hideAddButton && (actualIsAdding ? (
           <div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
               {presetColors.map(color => {
@@ -213,7 +223,7 @@ const HighlightLabelManager = ({ setActiveLabelId }) => {
             </button>
             <button
               onClick={() => {
-                setIsAdding(false);
+                actualSetIsAdding(false);
                 setError('');
               }}
               style={{ marginLeft: 6 }}
@@ -224,7 +234,7 @@ const HighlightLabelManager = ({ setActiveLabelId }) => {
           </div>
         ) : (
           <button onClick={startAdd}>+ Add Label</button>
-        )}
+        ))}
       </div>
     </div>
   );

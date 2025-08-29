@@ -32,23 +32,80 @@ if (require('electron-squirrel-startup')) {
 }
 
 const createWindow = () => {
+  // Calculate 4:3 aspect ratio dimensions
+  const width = 1152;
+  const height = 864; // 1400/1050 = 1.33 (4:3 ratio)
+  
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: width,
+    height: height,
+    resizable: false, // Disable resizing
+    maximizable: false, // Disable maximize button
+    frame: false, // Remove title bar completely
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       contextIsolation: true,
       webSecurity: true,
     },
+    center: true, // Center the window on screen
+    show: false, // Don't show until ready to prevent flash
+  });
+
+  // Show window when ready
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  mainWindow.webContents.openDevTools();
+  
+  // Only open dev tools in development mode
+  if (isDev) {
+    // mainWindow.webContents.openDevTools(); // Uncomment if you want dev tools in dev mode
+  }
 };
 
 
   ipcMain.handle('get-wav-buffer', async (event, wavPath) => {
     return fs.readFileSync(wavPath);
+  });
+
+  // Window scale handler
+  ipcMain.handle('set-window-scale', async (event, scaleKey) => {
+    const mainWindow = BrowserWindow.fromWebContents(event.sender);
+    const scaleOptions = {
+      'small': { width: 896, height: 672 },    // 78% of medium, maintains 4:3
+      'medium': { width: 1152, height: 864 },  // 100% baseline, maintains 4:3  
+      'large': { width: 1408, height: 1056 },  // 122% of medium, maintains 4:3
+      'xlarge': { width: 1664, height: 1248 }  // 144% of medium, maintains 4:3
+    };
+    
+    const scale = scaleOptions[scaleKey];
+    if (scale) {
+      // Temporarily enable resizing to allow programmatic resize
+      mainWindow.setResizable(true);
+      mainWindow.setMaximizable(true);
+      
+      // Resize the window
+      mainWindow.setSize(scale.width, scale.height);
+      mainWindow.center(); // Re-center after resize
+      
+      // Re-disable resizing to lock the new size
+      mainWindow.setResizable(false);
+      mainWindow.setMaximizable(false);
+      
+      console.log(`🖥️ Window resized to ${scaleKey}: ${scale.width}×${scale.height}`);
+    }
+  });
+
+  // Window control handlers
+  ipcMain.handle('minimize-window', async (event) => {
+    const mainWindow = BrowserWindow.fromWebContents(event.sender);
+    mainWindow.minimize();
+  });
+
+  ipcMain.handle('close-window', async (event) => {
+    const mainWindow = BrowserWindow.fromWebContents(event.sender);
+    mainWindow.close();
   });
 
 

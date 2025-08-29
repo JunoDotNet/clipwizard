@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import VideoPlayer from '../../components/VideoPlayer';
+import VideoPlayer from '../../components/shared/VideoPlayer';
 import ClipTabs from '../../components/ClipTabs';
 import AITranscriptImporter from '../../components/AITranscriptImporter';
 import useClipPlayback from '../../hooks/useClipPlayback';
@@ -9,7 +9,7 @@ import TranscriptDragSource from '../../components/TranscriptDragSource';
 import DropZone from '../../components/DropZone';
 import { arrayMove } from '@dnd-kit/sortable'; 
 import { v4 as uuidv4 } from 'uuid';
-import WaveformPlayer from '../../components/WaveformPlayer';
+import WaveformPlayer from '../../components/shared/WaveformPlayer';
 
 const CutPage = () => {
   const videoRef = useRef();

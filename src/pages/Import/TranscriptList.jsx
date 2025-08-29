@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../../context/AppContext';
 
 const formatTime = (time) => Number.isFinite(time) ? Math.round(time) : 0;
 
@@ -9,7 +9,8 @@ const TranscriptList = ({
   toggleId = () => {},
   jumpTo = () => {},
   onClickLine = null,
-  highlightedSections = []
+  highlightedSections = [],
+  activeLabelId = null // Add this prop to know when we're in highlight mode
 }) => {
   const { highlightLabels } = useAppContext();
   const labelMap = Object.fromEntries(highlightLabels.map(l => [l.id, l]));
@@ -41,7 +42,12 @@ const TranscriptList = ({
   }
 
   return (
-    <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #ccc', padding: 10 }}>
+    <div style={{ 
+      height: '100%', 
+      overflowY: 'auto', 
+      padding: `var(--scaled-spacing-base, 10px)`,
+      fontSize: `var(--scaled-font-base, 14px)`
+    }}>
       {transcript.map((line) => {
         const isSelected = selectedIds.includes(line.id);
         const marker = lineMarkers[line.id];
@@ -80,39 +86,75 @@ const TranscriptList = ({
           ) : null;
 
         return (
-          <label
+          <div
             key={line.id}
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: 5,
+              marginBottom: `var(--scaled-spacing-xs, 4px)`,
               background,
-              padding: '4px 6px',
-              borderRadius: 4,
+              padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 6px)`,
+              borderRadius: `var(--scaled-border-radius, 4px)`,
+              cursor: onClickLine ? 'pointer' : 'default',
+            }}
+            onClick={() => {
+              console.log('🖱️ Transcript line clicked:', line.id, line);
+              console.log('🖱️ Line start time:', line.start, 'jumpTo function:', jumpTo);
+              console.log('🖱️ activeLabelId:', activeLabelId, 'onClickLine:', !!onClickLine);
+              
+              // If actively highlighting (activeLabelId is set), prioritize highlighting over autoplay
+              if (onClickLine && activeLabelId) {
+                console.log('🎯 In highlight mode, blocking autoplay');
+                onClickLine(line.id);
+                return; // Exit early, don't trigger autoplay when actively highlighting
+              }
+              
+              // Otherwise do autoplay (whether highlighted or not)
+              if (typeof line.start === 'number' && line.start >= 0) {
+                jumpTo(line.start);
+                console.log('🎬 Jumping to time:', line.start);
+                
+                // Auto-play from this timestamp
+                setTimeout(() => {
+                  const video = document.querySelector('video');
+                  if (video) {
+                    video.currentTime = line.start;
+                    video.play().then(() => {
+                      console.log('▶️ Auto-playing from:', line.start);
+                    }).catch(err => {
+                      console.log('❌ Auto-play failed:', err);
+                    });
+                  }
+                }, 100); // Small delay to ensure currentTime is set
+              }
             }}
           >
-            <div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
               {toggleId && (
                 <input
                   type="checkbox"
                   checked={isSelected}
-                  onChange={() => toggleId(line.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    toggleId(line.id);
+                  }}
+                  style={{ marginRight: `var(--scaled-spacing-sm, 8px)` }}
                 />
               )}
               <span
-                style={{ marginLeft: 8, color: '#0077cc', cursor: 'pointer' }}
-                onClick={() => {
-                  if (!onClickLine) jumpTo(formatTime(line.start));
-                  onClickLine?.(line.id);
+                style={{ 
+                  color: '#0077cc',
+                  fontSize: `var(--scaled-font-sm, 12px)`,
+                  userSelect: 'none'
                 }}
               >
                 [{formatTime(line.start)}s–{formatTime(line.end)}s] {line.text}
               </span>
             </div>
 
-            {rightTag && <div style={{ marginLeft: 12 }}>{rightTag}</div>}
-          </label>
+            {rightTag && <div style={{ marginLeft: `var(--scaled-spacing-base, 12px)` }}>{rightTag}</div>}
+          </div>
         );
       })}
     </div>
