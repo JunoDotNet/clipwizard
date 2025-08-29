@@ -18,14 +18,15 @@ const SortableClipItem = ({ clip, onClick, onDelete, isSelected }) => {
     transform: CSS.Transform.toString(transform),
     transition,
     background: clip.__highlightColor || '#ddf',
-    padding: '6px 10px',
-    marginBottom: 4,
-    borderRadius: 4,
-    border: isSelected ? '2px solid #333' : '1px solid #ccc',
+    padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 8px)`,
+    marginBottom: `var(--scaled-spacing-xs, 4px)`,
+    borderRadius: `var(--scaled-border-radius, 4px)`,
+    border: isSelected ? `calc(2px * var(--app-scale, 1)) solid #333` : `var(--scaled-border-width, 1px) solid #ccc`,
     boxShadow: isSelected ? '0 0 4px rgba(0,0,0,0.3)' : 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    fontSize: `var(--scaled-font-sm, 12px)`,
   };
 
     return (
@@ -36,7 +37,12 @@ const SortableClipItem = ({ clip, onClick, onDelete, isSelected }) => {
             e.stopPropagation();
             onClick?.(clip);
             }}
-            style={{ flex: 1, cursor: 'pointer', paddingRight: 8 }}
+            style={{ 
+              flex: 1, 
+              cursor: 'pointer', 
+              paddingRight: `var(--scaled-spacing-sm, 8px)`,
+              fontSize: `var(--scaled-font-sm, 12px)`
+            }}
         >
             {(() => {
                 // Calculate adjusted times with offsets - add safety checks
@@ -57,12 +63,12 @@ const SortableClipItem = ({ clip, onClick, onDelete, isSelected }) => {
             onDelete?.(clip.id);
             }}
             style={{
-            marginRight: 6,
+            marginRight: `var(--scaled-spacing-xs, 4px)`,
             background: 'transparent',
             border: 'none',
             color: '#c00',
             cursor: 'pointer',
-            fontSize: 14,
+            fontSize: `var(--scaled-font-sm, 12px)`,
             }}
             title="Delete clip"
         >
@@ -74,10 +80,10 @@ const SortableClipItem = ({ clip, onClick, onDelete, isSelected }) => {
             {...listeners}
             style={{
             cursor: 'grab',
-            fontSize: 12,
-            padding: '2px 4px',
+            fontSize: `var(--scaled-font-xs, 10px)`,
+            padding: `calc(2px * var(--app-scale, 1)) var(--scaled-spacing-xs, 4px)`,
             backgroundColor: '#ccc',
-            borderRadius: 4,
+            borderRadius: `var(--scaled-border-radius, 4px)`,
             userSelect: 'none',
             }}
         >

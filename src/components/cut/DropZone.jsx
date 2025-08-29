@@ -61,18 +61,48 @@ const DropZone = ({
       id="cut-drop-zone"
       style={{
         flex: 1,
-        minHeight: 300,
+        minHeight: `calc(300px * var(--app-scale, 1))`,
         backgroundColor: isOver ? '#e0ffe0' : '#f8f8f8',
-        padding: 10,
-        borderRadius: 6,
+        padding: `var(--scaled-spacing-base, 12px)`,
+        borderRadius: `var(--scaled-border-radius, 4px)`,
         transition: 'background-color 0.2s ease',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h4 style={{ margin: 0 }}>📋 {tabName || 'Your Cut'}</h4>
+        <h4 style={{ 
+          margin: 0,
+          fontSize: `var(--scaled-font-base, 14px)`,
+          color: '#333'
+        }}>📋 {tabName || 'Your Cut'}</h4>
         <div style={{ position: 'relative' }}>
-          <button onClick={() => playClips(clips)} style={{ fontSize: 12, marginRight: 6 }}>▶️ Play All</button>
-          <button onClick={() => setShowSettings(prev => !prev)} title="Settings" style={{ fontSize: 14 }}>
+          <button 
+            onClick={() => playClips(clips)} 
+            style={{ 
+              fontSize: `var(--scaled-font-sm, 12px)`, 
+              marginRight: `var(--scaled-spacing-xs, 4px)`,
+              padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 6px)`,
+              background: '#444',
+              border: `var(--scaled-border-width, 1px) solid #555`,
+              color: '#ddd',
+              borderRadius: `var(--scaled-border-radius, 4px)`,
+              cursor: 'pointer'
+            }}
+          >
+            ▶️ Play All
+          </button>
+          <button 
+            onClick={() => setShowSettings(prev => !prev)} 
+            title="Settings" 
+            style={{ 
+              fontSize: `var(--scaled-font-base, 14px)`,
+              padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 6px)`,
+              background: '#444',
+              border: `var(--scaled-border-width, 1px) solid #555`,
+              color: '#ddd',
+              borderRadius: `var(--scaled-border-radius, 4px)`,
+              cursor: 'pointer'
+            }}
+          >
             ⚙️
           </button>
           {showSettings && (
@@ -81,38 +111,84 @@ const DropZone = ({
               top: '100%',
               right: 0,
               background: '#fff',
-              border: '1px solid #ccc',
-              padding: 8,
+              border: `var(--scaled-border-width, 1px) solid #ccc`,
+              padding: `var(--scaled-spacing-sm, 8px)`,
               zIndex: 1000,
-              width: 250
+              width: `calc(250px * var(--app-scale, 1))`,
+              borderRadius: `var(--scaled-border-radius, 4px)`,
+              boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
             }}>
-              <label style={{ display: 'block', marginBottom: 8 }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: `var(--scaled-spacing-sm, 8px)`,
+                fontSize: `var(--scaled-font-sm, 12px)`,
+                color: '#333'
+              }}>
                 ⏱️ Time Limit (seconds):
                 <input
                   type="number"
                   value={timeLimit ?? ''}
                   onChange={(e) => setTimeLimit(Number(e.target.value))}
                   placeholder="No limit"
-                  style={{ width: '100%', marginTop: 4 }}
+                  style={{ 
+                    width: '100%', 
+                    marginTop: `var(--scaled-spacing-xs, 4px)`,
+                    padding: `var(--scaled-spacing-xs, 4px)`,
+                    fontSize: `var(--scaled-font-sm, 12px)`,
+                    border: `var(--scaled-border-width, 1px) solid #ccc`,
+                    borderRadius: `var(--scaled-border-radius, 4px)`
+                  }}
                 />
               </label>
-              <button onClick={() => setTimeLimit(null)} style={{ marginBottom: 8, width: '100%' }}>
+              <button 
+                onClick={() => setTimeLimit(null)} 
+                style={{ 
+                  marginBottom: `var(--scaled-spacing-sm, 8px)`, 
+                  width: '100%',
+                  padding: `var(--scaled-spacing-xs, 4px)`,
+                  fontSize: `var(--scaled-font-sm, 12px)`,
+                  background: '#666',
+                  border: `var(--scaled-border-width, 1px) solid #777`,
+                  color: 'white',
+                  borderRadius: `var(--scaled-border-radius, 4px)`,
+                  cursor: 'pointer'
+                }}
+              >
                 ❌ Clear Limit
               </button>
-              <hr style={{ margin: '8px 0', border: '1px solid #ddd' }} />
-              <div style={{ marginTop: 8 }}>
-                <label style={{ display: 'block', marginBottom: 4, fontSize: '14px' }}>
+              <hr style={{ 
+                margin: `var(--scaled-spacing-sm, 8px) 0`, 
+                border: `var(--scaled-border-width, 1px) solid #ddd` 
+              }} />
+              <div style={{ marginTop: `var(--scaled-spacing-sm, 8px)` }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: `var(--scaled-spacing-xs, 4px)`, 
+                  fontSize: `var(--scaled-font-sm, 12px)`,
+                  color: '#333'
+                }}>
                   📝 Tab Name:
                 </label>
                 {isRenaming ? (
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: `var(--scaled-spacing-xs, 4px)`, 
+                    alignItems: 'center' 
+                  }}>
                     <input
                       type="text"
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
                       onKeyDown={handleRenameKeyDown}
                       placeholder="Tab name"
-                      style={{ flex: 1, padding: 4, minWidth: 0 }}
+                      style={{ 
+                        flex: 1, 
+                        padding: `var(--scaled-spacing-xs, 4px)`, 
+                        minWidth: 0,
+                        fontSize: `var(--scaled-font-sm, 12px)`,
+                        border: `var(--scaled-border-width, 1px) solid #ccc`,
+                        borderRadius: `var(--scaled-border-radius, 4px)`
+                      }}
                       autoFocus
                     />
                     <button
@@ -121,10 +197,12 @@ const DropZone = ({
                         background: '#4CAF50', 
                         color: 'white', 
                         border: 'none', 
-                        padding: '6px 10px', 
+                        padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 6px)`, 
                         cursor: 'pointer',
-                        minWidth: '28px',
-                        flexShrink: 0
+                        minWidth: `calc(28px * var(--app-scale, 1))`,
+                        flexShrink: 0,
+                        fontSize: `var(--scaled-font-sm, 12px)`,
+                        borderRadius: `var(--scaled-border-radius, 4px)`
                       }}
                     >
                       ✓
@@ -135,10 +213,12 @@ const DropZone = ({
                         background: '#f44336', 
                         color: 'white', 
                         border: 'none', 
-                        padding: '6px 10px', 
+                        padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 6px)`, 
                         cursor: 'pointer',
-                        minWidth: '28px',
-                        flexShrink: 0
+                        minWidth: `calc(28px * var(--app-scale, 1))`,
+                        flexShrink: 0,
+                        fontSize: `var(--scaled-font-sm, 12px)`,
+                        borderRadius: `var(--scaled-border-radius, 4px)`
                       }}
                     >
                       ✗
@@ -149,11 +229,13 @@ const DropZone = ({
                     onClick={handleStartRename}
                     style={{ 
                       width: '100%', 
-                      padding: 8, 
+                      padding: `var(--scaled-spacing-sm, 8px)`, 
                       background: '#f0f0f0', 
-                      border: '1px solid #ccc', 
+                      border: `var(--scaled-border-width, 1px) solid #ccc`, 
                       cursor: 'pointer',
-                      textAlign: 'left'
+                      textAlign: 'left',
+                      fontSize: `var(--scaled-font-sm, 12px)`,
+                      borderRadius: `var(--scaled-border-radius, 4px)`
                     }}
                   >
                     Rename "{tabName}"
@@ -165,7 +247,11 @@ const DropZone = ({
         </div>
       </div>
 
-      <p style={{ fontSize: 13, color: exceedsLimit ? 'red' : '#333', margin: '6px 0' }}>
+      <p style={{ 
+        fontSize: `var(--scaled-font-sm, 12px)`, 
+        color: exceedsLimit ? 'red' : '#333', 
+        margin: `var(--scaled-spacing-xs, 4px) 0` 
+      }}>
         🎬 Duration: {totalSeconds.toFixed(2)}s
         {timeLimit && ` / Limit: ${timeLimit}s`}
       </p>

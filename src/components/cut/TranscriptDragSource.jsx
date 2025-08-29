@@ -14,9 +14,10 @@ const TranscriptDragSource = ({ line, alreadyAddedIds = [], isOverlay = false })
       ? `translate(${transform.x}px, ${transform.y}px)`
       : undefined,
     backgroundColor: line.__highlightColor || '#eee',
-    padding: '6px 10px',
-    marginBottom: 4,
-    borderRadius: 4,
+    padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 8px)`,
+    marginBottom: `var(--scaled-spacing-xs, 4px)`,
+    borderRadius: `var(--scaled-border-radius, 4px)`,
+    fontSize: `var(--scaled-font-sm, 12px)`,
     cursor: 'grab',
     userSelect: 'none',
     pointerEvents: 'auto',

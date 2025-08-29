@@ -186,7 +186,7 @@ const CutPage = () => {
       <h2 style={{ 
         margin: `0 0 var(--scaled-spacing-lg, 20px) 0`, 
         flexShrink: 0,
-        fontSize: `var(--scaled-font-xl, 18px)`,
+        fontSize: `var(--scaled-font-lg, 16px)`,
         color: '#ddd'
       }}>✂️ Cut Page</h2>
 
@@ -230,7 +230,7 @@ const CutPage = () => {
               <div style={{ 
                 margin: 0,
                 padding: `var(--scaled-spacing-sm, 8px) var(--scaled-spacing-base, 12px)`,
-                fontSize: `var(--scaled-font-base, 14px)`,
+                fontSize: `var(--scaled-font-sm, 12px)`,
                 color: '#ddd',
                 background: '#2a2a2a',
                 borderBottom: `var(--scaled-border-width, 1px) solid #333`,
@@ -258,12 +258,12 @@ const CutPage = () => {
                       gap: `var(--scaled-spacing-xs, 4px)`
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: `var(--scaled-spacing-xs, 4px)` }}>
                       {activeHighlightFilter !== null && (
                         <div style={{
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '2px',
+                          width: `calc(12px * var(--app-scale, 1))`,
+                          height: `calc(12px * var(--app-scale, 1))`,
+                          borderRadius: `calc(2px * var(--app-scale, 1))`,
                           backgroundColor: highlightLabels.find(l => l.id === activeHighlightFilter)?.color || '#666',
                           flexShrink: 0
                         }}></div>
@@ -273,7 +273,7 @@ const CutPage = () => {
                          highlightLabels.find(l => l.id === activeHighlightFilter)?.name || 'Section'}
                       </span>
                     </div>
-                    <span style={{ fontSize: '10px' }}>{showSectionDropdown ? '▲' : '▼'}</span>
+                    <span style={{ fontSize: `var(--scaled-font-xs, 10px)` }}>{showSectionDropdown ? '▲' : '▼'}</span>
                   </button>
                   {showSectionDropdown && (
                     <div style={{
@@ -304,15 +304,15 @@ const CutPage = () => {
                           borderRadius: `var(--scaled-border-radius, 4px)`,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px'
+                          gap: `var(--scaled-spacing-xs, 4px)`
                         }}
                       >
                         <div style={{
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '2px',
+                          width: `calc(12px * var(--app-scale, 1))`,
+                          height: `calc(12px * var(--app-scale, 1))`,
+                          borderRadius: `calc(2px * var(--app-scale, 1))`,
                           backgroundColor: 'transparent',
-                          border: '1px solid #666',
+                          border: `var(--scaled-border-width, 1px) solid #666`,
                           flexShrink: 0
                         }}></div>
                         All Sections
@@ -336,13 +336,13 @@ const CutPage = () => {
                             borderRadius: `var(--scaled-border-radius, 4px)`,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: `var(--scaled-spacing-xs, 4px)`
                           }}
                         >
                           <div style={{
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '2px',
+                            width: `calc(12px * var(--app-scale, 1))`,
+                            height: `calc(12px * var(--app-scale, 1))`,
+                            borderRadius: `calc(2px * var(--app-scale, 1))`,
                             backgroundColor: label.color,
                             flexShrink: 0
                           }}></div>
@@ -607,7 +607,7 @@ const CutPage = () => {
             ) : (
               <div style={{ 
                 padding: `var(--scaled-spacing-lg, 20px)`,
-                fontSize: `var(--scaled-font-base, 14px)`,
+                fontSize: `var(--scaled-font-sm, 12px)`,
                 color: '#999',
                 textAlign: 'center',
                 border: `var(--scaled-border-width, 1px) dashed #555`,
