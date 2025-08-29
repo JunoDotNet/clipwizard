@@ -163,19 +163,24 @@ const ImportPage = () => {
 
   return (
     <div style={{ 
-      padding: 20, 
+      padding: `var(--scaled-spacing-lg, 20px)`, 
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
       boxSizing: 'border-box',
       overflow: 'hidden'
     }}>
-      <h2 style={{ margin: '0 0 20px 0', flexShrink: 0 }}>📥 Import Project</h2>
+      <h2 style={{ 
+        margin: `0 0 var(--scaled-spacing-lg, 20px) 0`, 
+        flexShrink: 0,
+        fontSize: `var(--scaled-font-xl, 18px)`,
+        color: '#ddd'
+      }}>📥 Import Project</h2>
 
       {videoSrc ? (
         <div style={{ 
           display: 'flex', 
-          gap: 20, 
+          gap: `var(--scaled-spacing-lg, 20px)`, 
           flex: 1,
           minHeight: 0,
           overflow: 'hidden'
@@ -185,7 +190,7 @@ const ImportPage = () => {
             flex: 1, 
             display: 'flex', 
             flexDirection: 'column',
-            gap: 20,
+            gap: `var(--scaled-spacing-lg, 20px)`,
             minWidth: 0,
             overflow: 'visible',
             maxHeight: '100%'
@@ -396,13 +401,29 @@ const ImportPage = () => {
                     hideTitle={true} 
                     hideAddButton={true}
                   />
-                  <div style={{ marginTop: 10, fontSize: 14 }}>
+                  <div style={{ 
+                    marginTop: `var(--scaled-spacing-base, 10px)`, 
+                    fontSize: `var(--scaled-font-base, 14px)`,
+                    color: '#ddd'
+                  }}>
                     {activeLabelId && markingStartId === null && (
                       <>
                         🖊️ Highlight mode: <strong>{highlightLabels.find(l => l.id === activeLabelId)?.name}</strong><br />
                         Click a transcript line to start the highlight.
                         <br />
-                        <button onClick={() => setActiveLabelId(null)} style={{ marginTop: 6 }}>
+                        <button 
+                          onClick={() => setActiveLabelId(null)} 
+                          style={{ 
+                            marginTop: `var(--scaled-spacing-xs, 6px)`,
+                            padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 8px)`,
+                            fontSize: `var(--scaled-font-sm, 12px)`,
+                            background: '#666',
+                            border: `var(--scaled-border-width, 1px) solid #555`,
+                            color: '#ddd',
+                            borderRadius: `var(--scaled-border-radius, 4px)`,
+                            cursor: 'pointer'
+                          }}
+                        >
                           ❌ Cancel Highlight Mode
                         </button>
                       </>
@@ -413,7 +434,19 @@ const ImportPage = () => {
                         Highlight started at line <strong>{markingStartId}</strong>.<br />
                         Now click the end line to confirm.
                         <br />
-                        <button onClick={() => setMarkingStartId(null)} style={{ marginTop: 6 }}>
+                        <button 
+                          onClick={() => setMarkingStartId(null)} 
+                          style={{ 
+                            marginTop: `var(--scaled-spacing-xs, 6px)`,
+                            padding: `var(--scaled-spacing-xs, 4px) var(--scaled-spacing-sm, 8px)`,
+                            fontSize: `var(--scaled-font-sm, 12px)`,
+                            background: '#666',
+                            border: `var(--scaled-border-width, 1px) solid #555`,
+                            color: '#ddd',
+                            borderRadius: `var(--scaled-border-radius, 4px)`,
+                            cursor: 'pointer'
+                          }}
+                        >
                           ❌ Cancel Highlight
                         </button>
                       </>

@@ -72,11 +72,11 @@ const TranscriptList = ({
           ) : marker?.label ? (
             <span
               style={{
-                fontSize: '0.75em',
+                fontSize: `var(--scaled-font-xs, 10px)`,
                 backgroundColor: marker.label.color,
                 color: '#000',
-                borderRadius: 4,
-                padding: '2px 6px',
+                borderRadius: `var(--scaled-border-radius, 4px)`,
+                padding: `var(--scaled-spacing-xs, 2px) var(--scaled-spacing-xs, 6px)`,
                 fontWeight: 'bold',
                 whiteSpace: 'nowrap',
               }}

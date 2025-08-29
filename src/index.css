@@ -6,6 +6,30 @@
   outline: none;
 }
 
+:root {
+  /* Global scaling factor */
+  --app-scale: 1;
+  
+  /* Scaled font sizes */
+  --scaled-font-xs: calc(10px * var(--app-scale));
+  --scaled-font-sm: calc(12px * var(--app-scale));
+  --scaled-font-base: calc(14px * var(--app-scale));
+  --scaled-font-lg: calc(16px * var(--app-scale));
+  --scaled-font-xl: calc(18px * var(--app-scale));
+  --scaled-font-2xl: calc(20px * var(--app-scale));
+  
+  /* Scaled spacing */
+  --scaled-spacing-xs: calc(4px * var(--app-scale));
+  --scaled-spacing-sm: calc(6px * var(--app-scale));
+  --scaled-spacing-base: calc(10px * var(--app-scale));
+  --scaled-spacing-md: calc(12px * var(--app-scale));
+  --scaled-spacing-lg: calc(20px * var(--app-scale));
+  
+  /* Scaled borders */
+  --scaled-border-width: calc(1px * var(--app-scale));
+  --scaled-border-radius: calc(4px * var(--app-scale));
+}
+
 html {
   height: 100vh;
   overflow: hidden;
