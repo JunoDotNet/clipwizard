@@ -5,7 +5,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import SortableClipItem from '../SortableClipItem';
+import SortableClipItem from './SortableClipItem';
 
 const DropZone = ({
   clips,

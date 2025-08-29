@@ -21,6 +21,7 @@ const WaveformPlayer = ({
   const containerRef = useRef(null);
   const timelineContainerRef = useRef(null);
   const wavesurferRef = useRef(null);
+  const regionsPluginRef = useRef(null); // Add regions plugin reference
   const timelinePluginRef = useRef(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentTime, setCurrentTime] = useState(0);
@@ -31,11 +32,12 @@ const WaveformPlayer = ({
     return JSON.stringify(highlightedSections);
   }, [highlightedSections]);
 
+  // Initialize WaveSurfer only once when wavPath changes
   useEffect(() => {
-    console.log('WaveformPlayer clips:', clips);
+    console.log('WaveformPlayer initializing with wavPath:', wavPath);
     setAudioLoaded(false);
-    if (!clips?.length || !wavPath || !containerRef.current || !timelineContainerRef.current) {
-      console.log('WaveformPlayer: Missing required elements or data');
+    if (!wavPath || !containerRef.current || !timelineContainerRef.current) {
+      console.log('WaveformPlayer: Missing wavPath or containers');
       return;
     }
 
@@ -56,6 +58,7 @@ const WaveformPlayer = ({
     });
 
     const regions = ws.registerPlugin(RegionsPlugin.create());
+    regionsPluginRef.current = regions; // Store reference to regions plugin
     const timeline = TimelinePlugin.create({
       container: timelineContainerRef.current,
       height: 20,
@@ -129,59 +132,6 @@ const WaveformPlayer = ({
       });
       timelinePluginRef.current = ws.registerPlugin(newTimeline);
       
-      // Remove any existing regions
-      regions.getRegions().forEach(r => r.remove());
-      
-      // Add regions for each transcript segment (clip)
-      if (clips && Array.isArray(clips)) {
-        clips.forEach((clip, idx) => {
-          if (typeof clip.start !== 'number' || typeof clip.end !== 'number' || clip.start >= clip.end) {
-            console.warn(`Skipping invalid clip at idx ${idx}:`, clip);
-            return;
-          }
-
-          // Calculate start and end times (with offsets for editable mode)
-          const startTime = editable ? clip.start + (clip.startOffset || 0) : clip.start;
-          const endTime = editable ? clip.end + (clip.endOffset || 0) : clip.end;
-          
-          // Determine region color
-          let regionColor = 'rgba(200,200,200,0.5)'; // base color: light grey
-          
-          if (editable && clip.__highlightColor) {
-            // Use highlight color from clip if in editable mode
-            regionColor = clip.__highlightColor + '55';
-          } else if (!editable && Array.isArray(highlightedSections)) {
-            // Use highlighted sections if in read-only mode
-            const match = highlightedSections.find(h =>
-              h.startTime <= clip.start && h.endTime >= clip.end
-            );
-            if (match && match.color) {
-              regionColor = match.color + '55';
-            }
-          }
-
-          const region = regions.addRegion({
-            id: `clip-${clip.id ?? idx}`,
-            start: startTime,
-            end: endTime,
-            color: regionColor,
-            drag: editable, // Only draggable in editable mode
-            resize: editable, // Only resizable in editable mode
-          });
-
-          // Add update handler for editable mode
-          if (editable) {
-            region.on('update-end', () => {
-              const newStartOffset = region.start - clip.start;
-              const newEndOffset = region.end - clip.end;
-              updateClipOffset?.(clip.id, 'startOffset', newStartOffset - (clip.startOffset || 0));
-              updateClipOffset?.(clip.id, 'endOffset', newEndOffset - (clip.endOffset || 0));
-            });
-          }
-        });
-        console.log('WaveformPlayer: regions created:', clips.length);
-      }
-      
       // Auto-zoom to fit content
       if (containerRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
@@ -246,7 +196,67 @@ const WaveformPlayer = ({
       }
       scrollEl?.removeEventListener('scroll', handleScroll);
     };
-  }, [clips, wavPath, editable, highlightDependency]);
+  }, [wavPath]); // Only depend on wavPath, not clips
+
+  // Separate effect to update regions when clips change
+  useEffect(() => {
+    if (!wavesurferRef.current || !regionsPluginRef.current || !audioLoaded || !clips?.length) {
+      return;
+    }
+
+    const regions = regionsPluginRef.current;
+    
+    // Remove existing regions
+    regions.getRegions().forEach(r => r.remove());
+    
+    // Add regions for each transcript segment (clip)
+    clips.forEach((clip, idx) => {
+      if (typeof clip.start !== 'number' || typeof clip.end !== 'number' || clip.start >= clip.end) {
+        console.warn(`Skipping invalid clip at idx ${idx}:`, clip);
+        return;
+      }
+
+      // Calculate start and end times (with offsets for editable mode)
+      const startTime = editable ? clip.start + (clip.startOffset || 0) : clip.start;
+      const endTime = editable ? clip.end + (clip.endOffset || 0) : clip.end;
+      
+      // Determine region color
+      let regionColor = 'rgba(200,200,200,0.5)'; // base color: light grey
+      
+      if (editable && clip.__highlightColor) {
+        // Use highlight color from clip if in editable mode
+        regionColor = clip.__highlightColor + '55';
+      } else if (!editable && Array.isArray(highlightedSections)) {
+        // Use highlighted sections if in read-only mode
+        const match = highlightedSections.find(h =>
+          h.startTime <= clip.start && h.endTime >= clip.end
+        );
+        if (match && match.color) {
+          regionColor = match.color + '55';
+        }
+      }
+
+      const region = regions.addRegion({
+        id: `clip-${clip.id ?? idx}`,
+        start: startTime,
+        end: endTime,
+        color: regionColor,
+        drag: editable, // Only draggable in editable mode
+        resize: editable, // Only resizable in editable mode
+      });
+
+      // Add update handler for editable mode
+      if (editable) {
+        region.on('update-end', () => {
+          const newStartOffset = region.start - clip.start;
+          const newEndOffset = region.end - clip.end;
+          updateClipOffset?.(clip.id, 'startOffset', newStartOffset - (clip.startOffset || 0));
+          updateClipOffset?.(clip.id, 'endOffset', newEndOffset - (clip.endOffset || 0));
+        });
+      }
+    });
+    console.log('WaveformPlayer: regions updated:', clips.length);
+  }, [clips, editable, highlightDependency, audioLoaded, updateClipOffset]); // Separate effect for regions only
 
   // Add a new effect to update zoom only when zoomLevel changes and audio is loaded
   useEffect(() => {
