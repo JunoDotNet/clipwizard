@@ -4,7 +4,7 @@ import { useAppContext } from '../../context/AppContext';
 import VideoCanvas from '../../components/crop/VideoCanvas';
 import OutputCanvas from '../../components/shared/OutputCanvas';
 import GizmoToolbar from '../../components/gizmo/GizmoToolbar';     // ✅ add
-import QueuePageBase from '../../components/QueuePageBase';
+import QueuePageBase from '../../components/shared/QueuePageBase';
 
 const CropPage = () => {
   const {

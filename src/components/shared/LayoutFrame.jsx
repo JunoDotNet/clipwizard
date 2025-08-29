@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
-import SplashScreen from '../SplashScreen';
+import SplashScreen from './SplashScreen';
 
 const LayoutFrame = ({ children }) => {
   const {

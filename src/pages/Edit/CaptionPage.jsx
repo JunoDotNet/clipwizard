@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import QueuePageBase from '../../components/QueuePageBase';
+import QueuePageBase from '../../components/shared/QueuePageBase';
 import OutputCanvas from '../../components/shared/OutputCanvas';
 import CaptionLayerPanel from '../../components/caption/CaptionLayerPanel';
 

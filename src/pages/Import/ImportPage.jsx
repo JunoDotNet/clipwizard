@@ -7,7 +7,7 @@ import { insertHighlightSection } from '../../utils/highlightUtils';
 import HighlightLabelManager from './HighlightLabelManager';
 import WaveformPlayer from '../../components/shared/WaveformPlayer';
 import AddCustomClip from './AddCustomClip';
-import SplashScreen from '../../components/SplashScreen';
+import SplashScreen from '../../components/shared/SplashScreen';
 import { v4 as uuidv4 } from 'uuid';
 
 const ImportPage = () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import FilePicker from './FilePicker';
-import ProjectControls from './ProjectControls';
+import FilePicker from '../FilePicker';
+import ProjectControls from '../ProjectControls';
 
 const AnimatedLoading = () => {
   const [dots, setDots] = useState(0);
@@ -28,7 +28,7 @@ const AnimatedLoading = () => {
 const SplashScreen = ({ onFileSelected, onProjectLoaded, loading, setTranscript, setClipTabs, setActiveTabId, setSelectedFile, setVideoSrc, setWavUrl, splashMode }) => {
   const [selectedModel, setSelectedModel] = useState('ggml-base.en.bin');
   const showClose = splashMode === 'manual';
-  const { setShowSplash } = require('../context/AppContext').useAppContext();
+  const { setShowSplash } = require('../../context/AppContext').useAppContext();
   
   const handleFileSelectedWithModel = (url, file) => {
     onFileSelected(url, file, selectedModel);
