@@ -52,13 +52,26 @@ const OutputCanvas = ({
     height: outputRes.height,
   };
 
-  // Calculate display size based on output resolution while maintaining reasonable UI scale
-  const maxDisplayWidth = 400; // Maximum width for the canvas display
+  // Calculate display size using VideoPlayer-like approach but with aspect ratio constraints
+  const appScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-scale')) || 1;
+  const maxDisplayWidth = 600 * appScale;  // Match VideoPlayer width
+  const maxDisplayHeight = 600 * appScale; // Increase max height to make canvas as big as possible
+  
   const aspectRatio = canvasSize.height / canvasSize.width;
-  const displayWidth = Math.min(maxDisplayWidth, canvasSize.width);
+  
+  // Calculate dimensions respecting both width and height constraints
+  let displayWidth = Math.min(maxDisplayWidth, canvasSize.width * appScale);
+  let displayHeight = displayWidth * aspectRatio;
+  
+  // If the calculated height exceeds our max, constrain by height instead
+  if (displayHeight > maxDisplayHeight) {
+    displayHeight = maxDisplayHeight;
+    displayWidth = displayHeight / aspectRatio;
+  }
+  
   const dynamicDisplaySize = {
     width: displayWidth,
-    height: displayWidth * aspectRatio,
+    height: displayHeight,
   };
 
   const scale = dynamicDisplaySize.width / canvasSize.width;
@@ -197,13 +210,13 @@ const OutputCanvas = ({
         color: color,
         lineHeight: 1.2,
         align: textAlign,
-        padding: 6,
+        padding: 6 * appScale, // Scale-aware padding
       });
     });
 
     // Draw caption overlay from captionData
     if (captionData.text && captionData.text.trim()) {
-      const { text, fontSize = 24, fontFamily = 'Arial', customFontPath, fontColor = '#ffffff' } = captionData;
+      const { text, fontSize = Math.round(24 * appScale), fontFamily = 'Arial', customFontPath, fontColor = '#ffffff' } = captionData;
       
       ctx.save();
       
@@ -221,7 +234,7 @@ const OutputCanvas = ({
       ctx.font = `bold ${fontSize}px ${canvasFont}`;
       ctx.fillStyle = fontColor;
       ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(1, Math.round(3 * appScale)); // Scale-aware line width
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       
@@ -293,108 +306,30 @@ const OutputCanvas = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h4>📱 Output Canvas</h4>
-      
-      {/* Resolution Selector */}
-      {showResolutionSelector && (
-        <div style={{ 
-          background: '#2a2a2a', 
-          padding: '15px', 
-          borderRadius: '8px',
-          border: '1px solid #444',
-          marginBottom: '15px',
-          width: dynamicDisplaySize.width
-        }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#fff', fontSize: '14px' }}>📐 Output Resolution</h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-            <select
-              value={outputFormat}
-              onChange={(e) => setOutputFormat(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '4px',
-                border: '1px solid #555',
-                background: '#1a1a1a',
-                color: '#fff',
-                fontSize: '12px',
-                minWidth: '200px'
-              }}
-            >
-              {Object.entries(formatPresets).map(([key, preset]) => (
-                <option key={key} value={key}>
-                  {preset.name} ({preset.width}×{preset.height})
-                </option>
-              ))}
-            </select>
-            
-            {outputFormat === 'custom' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="number"
-                  placeholder="Width"
-                  value={customResolution.width}
-                  onChange={(e) => setCustomResolution(prev => ({ ...prev, width: parseInt(e.target.value) || 1920 }))}
-                  style={{
-                    padding: '6px',
-                    borderRadius: '4px',
-                    border: '1px solid #555',
-                    background: '#1a1a1a',
-                    color: '#fff',
-                    width: '70px',
-                    fontSize: '12px'
-                  }}
-                />
-                <span style={{ color: '#ccc', fontSize: '12px' }}>×</span>
-                <input
-                  type="number"
-                  placeholder="Height"
-                  value={customResolution.height}
-                  onChange={(e) => setCustomResolution(prev => ({ ...prev, height: parseInt(e.target.value) || 1080 }))}
-                  style={{
-                    padding: '6px',
-                    borderRadius: '4px',
-                    border: '1px solid #555',
-                    background: '#1a1a1a',
-                    color: '#fff',
-                    width: '70px',
-                    fontSize: '12px'
-                  }}
-                />
-              </div>
-            )}
-            
-            <div style={{ 
-              color: '#888', 
-              fontSize: '11px',
-              marginLeft: 'auto' 
-            }}>
-              Current: {canvasSize.width}×{canvasSize.height}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div
-        ref={containerRef}
-        style={{
-          width: dynamicDisplaySize.width,
-          height: dynamicDisplaySize.height,
-          position: 'relative',
-          background: '#111',
-          border: '1px solid #555',
-        }}
-        onMouseDown={enableCaptionEditing && isDrawing ? handleMouseDown : undefined}
-        onMouseMove={enableCaptionEditing && isDrawing ? handleMouseMove : undefined}
-        onMouseUp={enableCaptionEditing && isDrawing ? handleMouseUp : undefined}
-      >
+    <div
+      ref={containerRef}
+      style={{
+        width: dynamicDisplaySize.width,
+        height: dynamicDisplaySize.height,
+        maxWidth: '100%',
+        position: 'relative',
+        background: '#111',
+        border: `var(--scaled-border-width, 1px) solid #555`,
+        borderRadius: `var(--scaled-border-radius, 4px)`,
+        overflow: 'hidden'
+      }}
+      onMouseDown={enableCaptionEditing && isDrawing ? handleMouseDown : undefined}
+      onMouseMove={enableCaptionEditing && isDrawing ? handleMouseMove : undefined}
+      onMouseUp={enableCaptionEditing && isDrawing ? handleMouseUp : undefined}
+    >
         <canvas
           ref={canvasRef}
           width={canvasSize.width}
           height={canvasSize.height}
           style={{
-            width: dynamicDisplaySize.width,
-            height: dynamicDisplaySize.height,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
             position: 'absolute',
             top: 0,
             left: 0,
@@ -577,7 +512,6 @@ const OutputCanvas = ({
             {isDrawing ? '❌ Cancel' : '➕ New Caption'}
           </button>
         )}
-      </div>
     </div>
   );
 };

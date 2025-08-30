@@ -28,6 +28,7 @@ export const AppProvider = ({ children }) => {
   // Sharing state - persist across page switches
   const [brokenFromSharing, setBrokenFromSharingState] = useState(new Set());
   const [sharedGroups, setSharedGroupsState] = useState({});
+  const [sharingGroups, setSharingGroupsState] = useState({}); // New unified sharing groups
 
   // Caption sharing state - separate from crop sharing
   const [captionBrokenFromSharing, setCaptionBrokenFromSharingState] = useState(new Set());
@@ -115,6 +116,10 @@ export const AppProvider = ({ children }) => {
     setSharedGroupsState(groups);
   };
 
+  const setSharingGroups = (groups) => {
+    setSharingGroupsState(groups);
+  };
+
   const setCaptionBrokenFromSharing = (broken) => {
     setCaptionBrokenFromSharingState(broken);
   };
@@ -130,6 +135,7 @@ export const AppProvider = ({ children }) => {
     setCaptionOverridesState({});
     setBrokenFromSharingState(new Set());
     setSharedGroupsState({});
+    setSharingGroupsState({});
     setCaptionBrokenFromSharingState(new Set());
     setCaptionSharedGroupsState({});
   };
@@ -154,6 +160,7 @@ export const AppProvider = ({ children }) => {
         sceneSegments, setSceneSegments,
         brokenFromSharing, setBrokenFromSharing,
         sharedGroups, setSharedGroups,
+        sharingGroups, setSharingGroups,
         captionBrokenFromSharing, setCaptionBrokenFromSharing,
         captionSharedGroups, setCaptionSharedGroups,
         clearCropData,

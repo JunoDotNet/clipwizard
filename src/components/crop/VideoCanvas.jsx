@@ -18,7 +18,10 @@ const VideoCanvas = ({
   const [drawStart, setDrawStart] = React.useState(null);
   const [tempBox, setTempBox] = React.useState(null);
 
-  const scale = displaySize.width / videoSize.width;
+  // Calculate scale based on consistent display width (600px * app-scale) rather than dynamic displaySize
+  const appScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-scale')) || 1;
+  const consistentDisplayWidth = 600 * appScale;
+  const scale = consistentDisplayWidth / videoSize.width;
 
   // Drawing a new crop box
   const getMouse = (e) => {
@@ -67,7 +70,7 @@ const VideoCanvas = ({
         return updated;
       });
 
-      setIsDrawing(false);
+      // Don't automatically turn off drawing mode - let user toggle it off manually
     }
 
     setDrawStart(null);
@@ -76,37 +79,52 @@ const VideoCanvas = ({
 
 
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-    >
-      <h4>📺 Source Video</h4>
-      <button
-        onClick={() => {
-          setIsDrawing(true);
-        }}
-        style={{ marginBottom: 8 }}
-      >
-        ➕ New Crop
-      </button>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div
         ref={containerRef}
         style={{
-          width: displaySize.width,
-          height: displaySize.height,
+          // Use consistent sizing like VideoPlayer instead of dynamic displaySize
+          width: `calc(600px * var(--app-scale, 1))`,
+          height: `calc(336px * var(--app-scale, 1))`,
+          maxWidth: '100%',
           position: 'relative',
           background: '#111',
+          borderRadius: `var(--scaled-border-radius, 4px)`,
+          border: `var(--scaled-border-width, 1px) solid #333`,
+          overflow: 'hidden'
         }}
         onMouseDown={isDrawing ? handleMouseDown : undefined}
         onMouseMove={isDrawing ? handleMouseMove : undefined}
         onMouseUp={isDrawing ? handleMouseUp : undefined}
       >
+        {/* New Crop button - positioned in top-left corner */}
+        <button
+          onClick={() => {
+            setIsDrawing(!isDrawing);
+          }}
+          style={{ 
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 4,
+            background: isDrawing ? '#f99' : '#fff'
+          }}
+        >
+          {isDrawing ? '❌ Cancel' : '➕ New Crop'}
+        </button>
         {videoPath && (
           <video
             ref={videoRef}
             src={videoPath}
-            width={displaySize.width}
-            height={displaySize.height}
-            style={{ display: 'block', pointerEvents: 'auto', zIndex: 0 }}
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'contain',
+              display: 'block', 
+              pointerEvents: 'auto', 
+              zIndex: 0,
+              background: 'black'
+            }}
           />
         )}
 
@@ -128,119 +146,6 @@ const VideoCanvas = ({
             videoSize={videoSize}
           />
         ))}
-      </div>
-      {/* Layer panel below the video canvas */}
-      <div
-        style={{
-          width: displaySize.width,
-          background: '#222',
-          color: '#eee',
-          fontSize: 14,
-          marginTop: 12,
-          borderRadius: 4,
-          padding: 8,
-          boxSizing: 'border-box',
-        }}
-      >
-        <strong>Crop Layers</strong>
-        <div style={{ marginTop: 6 }}>
-          {layers.length === 0 && (
-            <div style={{ color: '#888' }}>No crops yet.</div>
-          )}
-          {layers.map((layer, i) => (
-            <div
-              key={layer.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '4px 8px',
-                borderBottom: '1px solid #333',
-                opacity: layer.hidden ? 0.5 : 1,
-                background: selectedId === layer.id ? '#444' : 'transparent',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                margin: '2px 0'
-              }}
-              onClick={() => onSelect?.(layer.id)}
-            >
-              <span style={{ 
-                color: selectedId === layer.id ? '#0ff' : '#0f0', 
-                minWidth: 24,
-                fontWeight: selectedId === layer.id ? 'bold' : 'normal'
-              }}>
-                #{i + 1}
-              </span>
-              <span style={{ fontFamily: 'monospace' }}>
-                x:{Math.round(layer.crop.x)}, y:{Math.round(layer.crop.y)}, w:
-                {Math.round(layer.crop.width)}, h:
-                {Math.round(layer.crop.height)}
-              </span>
-              <button
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}
-                title="Move Up"
-                disabled={i === 0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (i === 0) return;
-                  setLayers(prev => {
-                    const arr = [...prev];
-                    [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
-                    return arr;
-                  });
-                }}
-              >
-                ↑
-              </button>
-              <button
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}
-                title="Move Down"
-                disabled={i === layers.length - 1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (i === layers.length - 1) return;
-                  setLayers(prev => {
-                    const arr = [...prev];
-                    [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
-                    return arr;
-                  });
-                }}
-              >
-                ↓
-              </button>
-              <button
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}
-                title={layer.hidden ? 'Show' : 'Hide'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLayers(prev => prev.map((l, j) => j === i ? { ...l, hidden: !l.hidden } : l));
-                }}
-              >
-                {layer.hidden ? '🙈' : '👁'}
-              </button>
-              <button
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#f44' }}
-                title="Delete"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLayers(prev => prev.filter((_, j) => j !== i));
-                }}
-              >
-                🗑
-              </button>
-              {!layer.hidden && (
-                <LayerTransformControls
-                  transform={layer.transform}
-                  onChange={(newTransform) => {
-                    setLayers(prev =>
-                      prev.map((l, j) => j === i ? { ...l, transform: newTransform } : l)
-                    );
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
