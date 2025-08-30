@@ -17,6 +17,7 @@ const QueuePageBase = ({
   const {
     selectedFile, videoSrc, clipTabs, cropQueue, setCropQueue,
     sceneSegments, setSceneSegments,
+    transcript, // Add transcript from context
   } = useAppContext();
 
   const [videoSize, setVideoSize] = useState({ width: 1920, height: 1080 });
@@ -67,6 +68,31 @@ const QueuePageBase = ({
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
   }, [videoRef]);
+
+  // Jump to clip function - seeks video to clip start time
+  const jumpToClip = (item) => {
+    if (!item || !videoRef.current) return;
+    
+    try {
+      const video = videoRef.current;
+      const targetTime = item.start || 0;
+      
+      if (video.readyState >= 2) { // HAVE_CURRENT_DATA or better
+        video.currentTime = targetTime;
+        console.log(`⏭ Jumped to clip ${item.id} at ${targetTime}s`);
+      } else {
+        // If video isn't ready, wait for it to load
+        const onLoadedData = () => {
+          video.currentTime = targetTime;
+          console.log(`⏭ Jumped to clip ${item.id} at ${targetTime}s (after load)`);
+          video.removeEventListener('loadeddata', onLoadedData);
+        };
+        video.addEventListener('loadeddata', onLoadedData);
+      }
+    } catch (error) {
+      console.error('❌ Failed to jump to clip:', error);
+    }
+  };
 
   // Generate queue based on source
   useEffect(() => {
@@ -334,7 +360,11 @@ const QueuePageBase = ({
             },
             currentData,
             setCurrentData,
-            currentItem
+            currentItem,
+            // Add queue-related parameters
+            cropQueue,
+            queueIndex,
+            setQueueIndex
           })}
         </>
       )}

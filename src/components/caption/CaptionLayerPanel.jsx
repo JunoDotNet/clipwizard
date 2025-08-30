@@ -101,7 +101,7 @@ const CaptionLayerPanel = ({ layers = [], onUpdateLayers }) => {
   const selectedLayer = selectedLayerIndex !== null ? layers[selectedLayerIndex] : null;
 
   return (
-    <div style={{ display: 'flex', gap: '16px', marginTop: 16 }}>
+    <div style={{ display: 'flex'}}>
       {/* Main Layer Panel */}
       <div style={{ flex: 1, minWidth: '300px' }}>
         {/* Layer Settings Panel */}
@@ -147,6 +147,29 @@ const CaptionLayerPanel = ({ layers = [], onUpdateLayers }) => {
               <div style={{ marginBottom: 8 }}>
                 <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', fontWeight: 'bold' }}>
                   Font Family:
+                  <label
+                    style={{ 
+                      padding: '2px 6px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '10px',
+                      border: 'none',
+                      display: 'inline-block',
+                      marginLeft: '8px',
+                      float: 'right'
+                    }}
+                    title="Upload custom font"
+                  >
+                    📤 Upload
+                    <input
+                      type="file"
+                      accept=".ttf,.otf,.woff,.woff2"
+                      onChange={handleFontUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
                 </label>
                 <select
                   value={selectedLayer.fontFamily || 'Arial'}
@@ -279,112 +302,6 @@ const CaptionLayerPanel = ({ layers = [], onUpdateLayers }) => {
             </li>
           ))}
         </ul>
-      </div>
-
-      {/* Font Upload Panel */}
-      <div style={{ 
-        width: '250px', 
-        border: '2px solid #28a745', 
-        padding: 12, 
-        backgroundColor: '#f8f9fa',
-        borderRadius: '4px',
-        height: 'fit-content'
-      }}>
-        <h5 style={{ margin: '0 0 12px 0', color: '#28a745' }}>📁 Font Manager</h5>
-        
-        {/* Font Upload Section */}
-        <div style={{ 
-          padding: '12px', 
-          backgroundColor: '#f0f8ff', 
-          border: '1px dashed #007bff',
-          borderRadius: '4px',
-          marginBottom: '12px'
-        }}>
-          <label style={{ 
-            display: 'block', 
-            marginBottom: '6px', 
-            fontSize: '12px', 
-            fontWeight: 'bold',
-            color: '#007bff'
-          }}>
-            📤 Upload Font File:
-          </label>
-          <input
-            type="file"
-            accept=".ttf,.otf,.woff,.woff2"
-            onChange={handleFontUpload}
-            style={{ 
-              width: '100%', 
-              padding: '4px',
-              fontSize: '11px',
-              marginBottom: '4px'
-            }}
-          />
-          <div style={{ 
-            fontSize: '10px', 
-            color: '#666'
-          }}>
-            Supports: .ttf, .otf, .woff, .woff2
-          </div>
-        </div>
-
-        {/* Uploaded Fonts List */}
-        {uploadedFonts.length > 0 && (
-          <div>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '6px', 
-              fontSize: '12px', 
-              fontWeight: 'bold',
-              color: '#28a745'
-            }}>
-              🎨 Uploaded Fonts:
-            </label>
-            <ul style={{ 
-              listStyle: 'none', 
-              padding: 0, 
-              margin: 0,
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
-              {uploadedFonts.map((font, index) => (
-                <li key={index} style={{ 
-                  padding: '4px 8px', 
-                  marginBottom: '2px',
-                  backgroundColor: '#e9ecef',
-                  borderRadius: '2px',
-                  fontSize: '11px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span>{font.name}</span>
-                  <button
-                    onClick={() => {
-                      // Remove font from uploaded fonts
-                      setUploadedFonts(prev => prev.filter((_, i) => i !== index));
-                      // Remove from document fonts
-                      document.fonts.delete(new FontFace(font.family, `url(${font.url})`));
-                      // Clean up URL
-                      URL.revokeObjectURL(font.url);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#dc3545',
-                      cursor: 'pointer',
-                      fontSize: '10px',
-                      padding: '2px'
-                    }}
-                    title="Remove font"
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );
