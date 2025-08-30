@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function GizmoToolbar({ mode, setMode, scaleLocked, setScaleLocked }) {
+export default function GizmoToolbar({ mode, setMode, scaleLocked, setScaleLocked, horizontal = false }) {
   const Item = ({ id, label }) => (
     <button
       onClick={() => setMode(id)}
@@ -13,7 +13,11 @@ export default function GizmoToolbar({ mode, setMode, scaleLocked, setScaleLocke
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: horizontal ? 'row' : 'column', 
+      gap: 8 
+    }}>
       <Item id="move" label="↕" />
       <Item id="scale" label="⤡" />
       <Item id="rotate" label="⟳" />

@@ -42,7 +42,8 @@ const QueueControls = ({
   // Page type for logging
   pageType = 'default'
 }) => {
-  if (!cropQueue || cropQueue.length === 0) return null;
+  // Always show the queue controls, even if empty
+  const hasClips = cropQueue && cropQueue.length > 0;
 
   return (
     <div style={{ 
@@ -50,7 +51,10 @@ const QueueControls = ({
       borderRadius: '8px',
       border: '1px solid #444',
       padding: '12px',
-      color: '#fff'
+      color: '#fff',
+      height: '100%', // Fill parent container
+      display: 'flex',
+      flexDirection: 'column'
     }}>
       {/* Add CSS for hover effect */}
       <style>{`
@@ -63,24 +67,26 @@ const QueueControls = ({
       {/* Header with controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>🎞 Queue ({cropQueue.length})</h4>
+          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>🎞 Queue ({hasClips ? cropQueue.length : 0})</h4>
           
-          {/* Play All button */}
-          <button
-            style={{
-              fontSize: 11,
-              padding: '4px 8px',
-              background: isPlayingAll ? '#ff6b6b' : '#52c41a',
-              color: 'white',
-              border: 'none',
-              borderRadius: 3,
-              cursor: 'pointer'
-            }}
-            onClick={isPlayingAll ? stopPlayingAll : playAllClips}
-            title={isPlayingAll ? "Stop playing all clips" : "Play all clips sequentially"}
-          >
-            {isPlayingAll ? '⏸️ Stop' : '▶️ Play All'}
-          </button>
+          {/* Play All button - only show if there are clips */}
+          {hasClips && (
+            <button
+              style={{
+                fontSize: 11,
+                padding: '4px 8px',
+                background: isPlayingAll ? '#ff6b6b' : '#52c41a',
+                color: 'white',
+                border: 'none',
+                borderRadius: 3,
+                cursor: 'pointer'
+              }}
+              onClick={isPlayingAll ? stopPlayingAll : playAllClips}
+              title={isPlayingAll ? "Stop playing all clips" : "Play all clips sequentially"}
+            >
+              {isPlayingAll ? '⏸️ Stop' : '▶️ Play All'}
+            </button>
+          )}
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -166,13 +172,15 @@ const QueueControls = ({
       
       {/* Queue items */}
       <div style={{ 
-        maxHeight: '400px',
-        overflow: 'auto',
+        flex: '1', // Take remaining space
+        overflow: 'auto', // Add scrollbar when needed
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px'
+        gap: '4px',
+        minHeight: 0 // Allow shrinking
       }}>
-        {cropQueue.map((item, idx) => (
+        {hasClips ? (
+          cropQueue.map((item, idx) => (
           <div
             key={item.id}
             style={{
@@ -463,7 +471,17 @@ const QueueControls = ({
               )}
             </div>
           </div>
-        ))}
+        ))) : (
+          // Show empty state when no clips
+          <div style={{
+            padding: '20px',
+            textAlign: 'center',
+            color: '#999',
+            fontStyle: 'italic'
+          }}>
+            No clips in queue yet. Import a video and create cuts to populate the queue.
+          </div>
+        )}
       </div>
     </div>
   );

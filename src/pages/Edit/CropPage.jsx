@@ -5,6 +5,7 @@ import VideoCanvas from '../../components/crop/VideoCanvas';
 import OutputCanvas from '../../components/shared/OutputCanvas';
 import GizmoToolbar from '../../components/gizmo/GizmoToolbar';
 import QueueControls from '../../components/shared/QueueControls';
+import CropLayerPanel from '../../components/crop/CropLayerPanel';
 import { useQueueLogic } from '../../hooks/useQueueLogic';
 
 const CropPage = () => {
@@ -14,7 +15,9 @@ const CropPage = () => {
     cropOverrides, setCropOverrides,
     captionOverrides,
     videoSrc,
-    sharingGroups, setSharingGroups
+    sharingGroups, setSharingGroups,
+    getOutputResolution,
+    windowScale, windowScalePresets  // Add windowScale from context
   } = useAppContext();
 
   // Use the queue logic hook
@@ -81,14 +84,19 @@ const CropPage = () => {
   React.useEffect(() => {
     if (queueLogic.currentItem && hasInitialized && !isUpdating) {
       const clipData = cropOverrides[queueLogic.currentItem.id] || [...sharedCropLayers];
-      setCurrentData(JSON.parse(JSON.stringify(clipData)));
-      console.log('🔄 Switched to clip data:', queueLogic.currentItem.id, clipData);
+      const newData = JSON.parse(JSON.stringify(clipData));
+      
+      // Only update if the data is actually different
+      if (JSON.stringify(newData) !== JSON.stringify(currentData)) {
+        setCurrentData(newData);
+        console.log('🔄 Switched to clip data:', queueLogic.currentItem.id, newData);
+      }
     }
   }, [queueLogic.currentItem?.id, hasInitialized, cropOverrides, sharedCropLayers, isUpdating]);
 
   // Save currentData changes to the current clip's override
   React.useEffect(() => {
-    if (!queueLogic.currentItem || !hasInitialized) return;
+    if (!queueLogic.currentItem || !hasInitialized || isUpdating) return;
     
     // Debounce the save to prevent excessive updates during drag operations
     const timeoutId = setTimeout(() => {
@@ -122,11 +130,11 @@ const CropPage = () => {
       console.log('💾 Saved crop data for:', queueLogic.currentItem.id);
       
       // Allow switch effect to run again after a brief delay
-      setTimeout(() => setIsUpdating(false), 50);
-    }, 100);
+      setTimeout(() => setIsUpdating(false), 100);
+    }, 200);
     
     return () => clearTimeout(timeoutId);
-  }, [currentData, queueLogic.currentItem?.id, cropOverrides, setCropOverrides, hasInitialized, sharingGroups]);
+  }, [currentData]); // Only depend on currentData changes
 
   // Get duration from video ref
   useEffect(() => {
@@ -151,13 +159,25 @@ const CropPage = () => {
     console.log('🎨 Crop data changed:', data);
   }, []);
 
-  const renderCropEditor = () => {
+  const renderCropEditor = useCallback(() => {
     const layers = currentData || [];
 
     return (
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-        {/* Left column: source video and queue */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ 
+        display: 'flex', 
+        gap: `var(--scaled-spacing-xl, 24px)`, 
+        height: 'calc(100vh - 120px)', // Full height minus header and padding
+        alignItems: 'stretch'
+      }}>
+        {/* LEFT COLUMN: VideoCanvas and controls */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: `var(--scaled-spacing-base, 16px)`,
+          width: 'calc(600px * var(--app-scale, 1))', // Match VideoCanvas width exactly
+          flexShrink: 0, // Don't allow shrinking
+          minWidth: 0 // Allow content to shrink if needed
+        }}>
           {/* Video canvas for drawing crop boxes */}
           <VideoCanvas
             videoPath={queueLogic.videoSrc}
@@ -170,53 +190,108 @@ const CropPage = () => {
             selectedId={selectedId}
           />
           
-          {/* Queue controls under the video */}
-          <QueueControls
-            // Queue data
-            cropQueue={queueLogic.cropQueue}
-            queueIndex={queueLogic.queueIndex}
-            setQueueIndex={queueLogic.setQueueIndex}
-            currentItem={queueLogic.currentItem}
+          {/* Queue controls and layer panel - constrained height with scaling */}
+          <div style={{ 
+            display: 'flex', 
+            gap: `var(--scaled-spacing-base, 16px)`,
+            height: `calc(300px * var(--app-scale, 1))`, // Scale with app context
+            minHeight: 0 // Allow shrinking
+          }}>
+            {/* Queue controls - 2/3 width */}
+            <div style={{ 
+              flex: '2',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0, // Allow shrinking
+              height: '100%' // Fill container height
+            }}>
+              <QueueControls
+                // Queue data
+                cropQueue={queueLogic.cropQueue}
+                queueIndex={queueLogic.queueIndex}
+                setQueueIndex={queueLogic.setQueueIndex}
+                currentItem={queueLogic.currentItem}
+                
+                // Playback controls
+                isPlayingAll={queueLogic.isPlayingAll}
+                playAllClips={() => queueLogic.playAllClips(videoRef)}
+                stopPlayingAll={queueLogic.stopPlayingAll}
+                currentPlayingIndex={queueLogic.currentPlayingIndex}
+                jumpToClip={(item) => queueLogic.jumpToClip(item, videoRef)}
+                videoRef={videoRef}
+                
+                // Copy/Paste functionality
+                copiedData={queueLogic.copiedData}
+                sourceClipLabel={queueLogic.sourceClipLabel}
+                setCopiedData={queueLogic.setCopiedData}
+                setSourceClipLabel={queueLogic.setSourceClipLabel}
+                
+                // Data management
+                getItemData={getItemData}
+                getSharedData={getSharedData}
+                setItemData={setCropOverrides}
+                setCurrentData={setCurrentData}
+                
+                // Queue source controls (now in header)
+                queueSource={queueLogic.queueSource}
+                setQueueSource={queueLogic.setQueueSource}
+                clipTabs={queueLogic.clipTabs}
+                handleSceneDetection={queueLogic.handleSceneDetection}
+                
+                // Sharing functionality
+                activeBrokenFromSharing={queueLogic.activeBrokenFromSharing}
+                setActiveBrokenFromSharing={queueLogic.setActiveBrokenFromSharing}
+                sharingGroups={sharingGroups}
+                setSharingGroups={setSharingGroups}
+                
+                // Page type for logging
+                pageType="crop"
+              />
+            </div>
             
-            // Playback controls
-            isPlayingAll={queueLogic.isPlayingAll}
-            playAllClips={() => queueLogic.playAllClips(videoRef)}
-            stopPlayingAll={queueLogic.stopPlayingAll}
-            currentPlayingIndex={queueLogic.currentPlayingIndex}
-            jumpToClip={(item) => queueLogic.jumpToClip(item, videoRef)}
-            videoRef={videoRef}
-            
-            // Copy/Paste functionality
-            copiedData={queueLogic.copiedData}
-            sourceClipLabel={queueLogic.sourceClipLabel}
-            setCopiedData={queueLogic.setCopiedData}
-            setSourceClipLabel={queueLogic.setSourceClipLabel}
-            
-            // Data management
-            getItemData={getItemData}
-            getSharedData={getSharedData}
-            setItemData={setCropOverrides}
-            setCurrentData={setCurrentData}
-            
-            // Queue source controls (now in header)
-            queueSource={queueLogic.queueSource}
-            setQueueSource={queueLogic.setQueueSource}
-            clipTabs={queueLogic.clipTabs}
-            handleSceneDetection={queueLogic.handleSceneDetection}
-            
-            // Sharing functionality
-            activeBrokenFromSharing={queueLogic.activeBrokenFromSharing}
-            setActiveBrokenFromSharing={queueLogic.setActiveBrokenFromSharing}
-            sharingGroups={sharingGroups}
-            setSharingGroups={setSharingGroups}
-            
-            // Page type for logging
-            pageType="crop"
-          />
+            {/* Crop layer panel - 1/3 width */}
+            <div style={{ 
+              flex: '1',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0, // Allow shrinking
+              height: '100%' // Fill container height
+            }}>
+              <CropLayerPanel
+                layers={layers}
+                onUpdateLayers={setCurrentData}
+                selectedLayerId={selectedId}
+                setSelectedLayerId={setSelectedId}
+                currentItem={queueLogic.currentItem}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Middle: rendered OUTPUT with gizmo overlay on top */}
-        <div style={{ position: 'relative' }}>
+        {/* RIGHT COLUMN: OutputCanvas with floating Gizmo Toolbar */}
+        <div style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          position: 'relative' // Allow absolute positioning of gizmo toolbar
+        }}>
+          {/* Floating Gizmo toolbar above output canvas - left aligned */}
+          <div style={{
+            position: 'absolute',
+            top: '-60px', // Float above the output canvas
+            left: '0', // Left align with output canvas
+            zIndex: 10
+          }}>
+            <GizmoToolbar
+              mode={gizmoMode}
+              setMode={setGizmoMode}
+              scaleLocked={scaleLocked}
+              setScaleLocked={setScaleLocked}
+              horizontal={true} // Use horizontal layout
+            />
+          </div>
+
+          {/* Output canvas */}
           <OutputCanvas
             videoRef={videoRef}
             displaySize={queueLogic.displayFrameSize}
@@ -233,26 +308,16 @@ const CropPage = () => {
             enableCaptionEditing={false}
           />
         </div>
-
-        {/* Right: vertical tool stack */}
-        <GizmoToolbar
-          mode={gizmoMode}
-          setMode={setGizmoMode}
-          scaleLocked={scaleLocked}
-          setScaleLocked={setScaleLocked}
-          onDelete={() => {
-            if (!selectedId) return;
-            setCurrentData(prev => prev.filter(l => l.id !== selectedId));
-            setSelectedId(null);
-          }}
-        />
       </div>
     );
-  };
+  }, [currentData, getOutputResolution, queueLogic, selectedId, setCurrentData, cropOverrides, getItemData, getSharedData, setCropOverrides, sharingGroups, setSharingGroups, captionOverrides, windowScale, windowScalePresets]);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>📐 Crop Editor</h2>
+    <div style={{ padding: `var(--scaled-spacing-lg, 20px)` }}>
+      <h2 style={{ 
+        fontSize: `var(--scaled-font-lg, 18px)`,
+        marginBottom: `var(--scaled-spacing-base, 12px)`
+      }}>📐 Crop Editor</h2>
       
       {!queueLogic.videoSrc ? (
         <p style={{ color: '#999' }}>⚠️ No video loaded. Please import one first.</p>

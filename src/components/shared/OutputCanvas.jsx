@@ -29,12 +29,16 @@ const OutputCanvas = ({
     outputFormat, setOutputFormat, 
     customResolution, setCustomResolution, 
     formatPresets, 
-    getOutputResolution 
+    getOutputResolution,
+    windowScale, windowScalePresets  // Add windowScale from context
   } = useAppContext();
   const safeCaptionLayers = Array.isArray(captionLayers) ? captionLayers : [];
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const animationRef = useRef();
+  
+  // Force re-render when output format or custom resolution changes
+  const [renderKey, setRenderKey] = useState(0);
   
   // Caption editing state
   const [isDrawing, setIsDrawing] = useState(false);
@@ -45,6 +49,14 @@ const OutputCanvas = ({
   const [customFontLoaded, setCustomFontLoaded] = useState(false);
   const [customFontFamily, setCustomFontFamily] = useState('');
 
+  // Force re-render when output format, custom resolution, or window scale changes
+  useEffect(() => {
+    console.log('🔄 OutputCanvas: Settings changed, forcing re-render', { outputFormat, customResolution, windowScale });
+    setRenderKey(prev => prev + 1);
+  }, [outputFormat, customResolution, windowScale]);
+
+  // Remove the complex MutationObserver - we'll use windowScale from context instead
+
   // Canvas dimensions - using selected output resolution
   const outputRes = getOutputResolution();
   const canvasSize = {
@@ -52,29 +64,36 @@ const OutputCanvas = ({
     height: outputRes.height,
   };
 
-  // Calculate display size using VideoPlayer-like approach but with aspect ratio constraints
+  console.log('📐 OutputCanvas: Current dimensions', { 
+    outputRes, 
+    canvasSize,
+    renderKey,
+    windowScale,
+    scaleMultiplier: windowScalePresets[windowScale]?.scale
+  });
+
+  // Use app context scaling directly like VideoCanvas/VideoPlayer
+  // Base dimensions that will be scaled by var(--app-scale, 1)
+  const baseWidth = 336;   // Portrait orientation - narrower width
+  const baseHeight = 600;  // Portrait orientation - taller height
+  // Calculate scale based on app context, same way as VideoCanvas
   const appScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-scale')) || 1;
-  const maxDisplayWidth = 600 * appScale;  // Match VideoPlayer width
-  const maxDisplayHeight = 600 * appScale; // Increase max height to make canvas as big as possible
-  
-  const aspectRatio = canvasSize.height / canvasSize.width;
-  
-  // Calculate dimensions respecting both width and height constraints
-  let displayWidth = Math.min(maxDisplayWidth, canvasSize.width * appScale);
-  let displayHeight = displayWidth * aspectRatio;
-  
-  // If the calculated height exceeds our max, constrain by height instead
-  if (displayHeight > maxDisplayHeight) {
-    displayHeight = maxDisplayHeight;
-    displayWidth = displayHeight / aspectRatio;
-  }
   
   const dynamicDisplaySize = {
-    width: displayWidth,
-    height: displayHeight,
+    width: baseWidth * appScale,
+    height: baseHeight * appScale,
   };
 
-  const scale = dynamicDisplaySize.width / canvasSize.width;
+  console.log('📐 OutputCanvas: Using app context scaling like VideoCanvas', { 
+    windowScale,
+    appScale,
+    baseWidth,
+    baseHeight,
+    finalSize: dynamicDisplaySize,
+    exportResolution: canvasSize
+  });
+
+  const scale = (baseWidth * appScale) / canvasSize.width;
 
   // Mouse handling for caption editing
   const getMouse = (e) => {
@@ -210,13 +229,14 @@ const OutputCanvas = ({
         color: color,
         lineHeight: 1.2,
         align: textAlign,
-        padding: 6 * appScale, // Scale-aware padding
+        padding: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--scaled-spacing-sm')) || 8,
       });
     });
 
     // Draw caption overlay from captionData
     if (captionData.text && captionData.text.trim()) {
-      const { text, fontSize = Math.round(24 * appScale), fontFamily = 'Arial', customFontPath, fontColor = '#ffffff' } = captionData;
+      const scaledFontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--scaled-font-xl')) || 18;
+      const { text, fontSize = scaledFontSize, fontFamily = 'Arial', customFontPath, fontColor = '#ffffff' } = captionData;
       
       ctx.save();
       
@@ -234,7 +254,7 @@ const OutputCanvas = ({
       ctx.font = `bold ${fontSize}px ${canvasFont}`;
       ctx.fillStyle = fontColor;
       ctx.strokeStyle = '#000000';
-      ctx.lineWidth = Math.max(1, Math.round(3 * appScale)); // Scale-aware line width
+      ctx.lineWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--scaled-border-width')) || 1;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       
@@ -269,7 +289,7 @@ const OutputCanvas = ({
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
     // eslint-disable-next-line
-  }, [canvasSize, cropLayers, videoRef, activeCrop, captionData, customFontLoaded, customFontFamily, safeCaptionLayers]);
+  }, [canvasSize, cropLayers, videoRef, activeCrop, captionData, customFontLoaded, customFontFamily, safeCaptionLayers, outputRes.width, outputRes.height, windowScale]);
 
   // Caption editing handlers
   const handleMouseDown = (e) => {
@@ -309,8 +329,8 @@ const OutputCanvas = ({
     <div
       ref={containerRef}
       style={{
-        width: dynamicDisplaySize.width,
-        height: dynamicDisplaySize.height,
+        width: `calc(${baseWidth}px * var(--app-scale, 1))`,
+        height: `calc(${baseHeight}px * var(--app-scale, 1))`,
         maxWidth: '100%',
         position: 'relative',
         background: '#111',
@@ -323,12 +343,13 @@ const OutputCanvas = ({
       onMouseUp={enableCaptionEditing && isDrawing ? handleMouseUp : undefined}
     >
         <canvas
+          key={`${canvasSize.width}x${canvasSize.height}-${renderKey}`}
           ref={canvasRef}
           width={canvasSize.width}
           height={canvasSize.height}
           style={{
-            width: '100%',
-            height: '100%',
+            width: `calc(${baseWidth}px * var(--app-scale, 1))`,
+            height: `calc(${baseHeight}px * var(--app-scale, 1))`,
             objectFit: 'contain',
             position: 'absolute',
             top: 0,
@@ -372,6 +393,7 @@ const OutputCanvas = ({
             const initialTransform = selectedLayer.transform || { x: 0, y: 0, scale: 1, rotate: 0 };
 
             const handlePointerMove = (moveE) => {
+              // Use the same scale as the canvas display
               const dx = (moveE.clientX - startPos.x) / scale;
               const dy = (moveE.clientY - startPos.y) / scale;
 
